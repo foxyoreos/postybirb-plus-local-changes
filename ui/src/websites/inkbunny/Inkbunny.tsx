@@ -7,6 +7,7 @@ import { GenericSelectProps } from '../generic/GenericSelectProps';
 import { LoginDialogProps } from '../interfaces/website.interface';
 import { WebsiteImpl } from '../website.base';
 import InkbunnyLogin from './InkbunnyLogin';
+import { InkbunnyTagSearchProvider } from './providers';
 
 export class Inkbunny extends WebsiteImpl {
   internalName: string = 'Inkbunny';
@@ -18,6 +19,10 @@ export class Inkbunny extends WebsiteImpl {
   LoginDialog = (props: LoginDialogProps) => <InkbunnyLogin {...props} />;
   FileSubmissionForm = (props: WebsiteSectionProps<FileSubmission, InkbunnyFileOptions>) => (
     <InkbunnyFileSubmissionForm
+      tagOptions={{
+        show: true,
+        searchProvider: InkbunnyTagSearchProvider,
+      }}
       ratingOptions={{
         show: true,
         ratings: [

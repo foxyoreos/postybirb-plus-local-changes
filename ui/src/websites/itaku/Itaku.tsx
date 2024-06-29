@@ -14,6 +14,7 @@ import GenericFileSubmissionSection from '../generic/GenericFileSubmissionSectio
 import { GenericSelectProps } from '../generic/GenericSelectProps';
 import GenericSubmissionSection from '../generic/GenericSubmissionSection';
 import { WebsiteImpl } from '../website.base';
+import { ItakuTagSearchProvider } from './providers';
 
 export class Itaku extends WebsiteImpl {
   internalName: string = 'Itaku';
@@ -27,6 +28,7 @@ export class Itaku extends WebsiteImpl {
       key={props.part.accountId}
       tagOptions={{
         show: true,
+        searchProvider: ItakuTagSearchProvider,
         options: {
           minTags: 5
         }
@@ -58,9 +60,6 @@ export class Itaku extends WebsiteImpl {
     <ItakuNotificationSubmissionForm
       key={props.part.accountId}
       {...props}
-      tagOptions={{
-        show: true
-      }}
       ratingOptions={{
         show: true,
         ratings: [

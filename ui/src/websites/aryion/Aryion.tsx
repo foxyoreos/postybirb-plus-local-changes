@@ -7,6 +7,7 @@ import { SubmissionSectionProps } from '../../views/submissions/submission-forms
 import { WebsiteSectionProps } from '../form-sections/website-form-section.interface';
 import GenericFileSubmissionSection from '../generic/GenericFileSubmissionSection';
 import { WebsiteImpl } from '../website.base';
+import { AryionTagSearchProvider } from './providers';
 
 export class Aryion extends WebsiteImpl {
   internalName: string = 'Aryion';
@@ -18,6 +19,10 @@ export class Aryion extends WebsiteImpl {
   FileSubmissionForm = (props: WebsiteSectionProps<FileSubmission, AryionFileOptions>) => (
     <AryionFileSubmissionForm
       key={props.part.accountId}
+      tagOptions={{
+        show: true,
+        searchProvider: AryionTagSearchProvider,
+      }}
       ratingOptions={{
         show: false
       }}
