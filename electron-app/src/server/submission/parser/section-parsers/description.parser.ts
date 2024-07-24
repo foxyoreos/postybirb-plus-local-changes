@@ -16,6 +16,7 @@ interface ShortcutData {
   modifiersText: string;
   modifiers: {
     only?: string;
+    not?: string;
   };
   key: string;
 }
@@ -179,6 +180,31 @@ export class DescriptionParser {
       .filter(sc => sc.modifiers.only)
       .forEach(sc => {
         if (sc.modifiers.only.toLowerCase().split(',').includes(allowed)) {
+          description = description.replace(
+            sc.originalText,
+            `{${sc.key}${sc.additionalText ? ':' : ''}${sc.additionalText}}`,
+          );
+        } else {
+          const regex = new RegExp(
+            `(\\s){0,1}${this.escapeRegexString(sc.originalText)}(\\s){0,1}`,
+          );
+          const [match, beforeSpace, afterSpace] = description.match(regex);
+          if (beforeSpace && afterSpace) {
+            description = description.replace(regex, ' ');
+          } else if (beforeSpace) {
+            description = description.replace(sc.originalText, '');
+          } else if (afterSpace) {
+            description = description.replace(sc.originalText, '');
+          } else {
+            description = description.replace(sc.originalText, '');
+          }
+        }
+      });
+
+    shortcuts
+      .filter(sc => sc.modifiers.not)
+      .forEach(sc => {
+        if (!sc.modifiers.not.toLowerCase().split(',').includes(allowed)) {
           description = description.replace(
             sc.originalText,
             `{${sc.key}${sc.additionalText ? ':' : ''}${sc.additionalText}}`,
