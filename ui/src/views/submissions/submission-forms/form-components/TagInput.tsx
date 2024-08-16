@@ -23,6 +23,7 @@ interface Props {
   hideExtra?: boolean;
   hideTagGroup?: boolean;
   tagOptions?: TagOptions;
+  website?: string;
   searchProvider?: (value: string) => Promise<string[]>;
 }
 
@@ -157,6 +158,7 @@ export default class TagInput extends React.Component<Props, State> {
         <div className="flex">
           {this.props.hideTagGroup ? null : (
             <TagGroupSelect
+              website={this.props.website}
               onSelect={tags => this.handleTagChange([...this.props.defaultValue.value, ...tags])}
             />
           )}
@@ -212,6 +214,7 @@ const Help: React.SFC<HelpProps> = props => {
 interface TagGroupSelectProps {
   onSelect: (tags: string[]) => void;
   tagGroupStore?: TagGroupStore;
+  website?: string;
 }
 
 interface TagGroupSelectState {
@@ -246,32 +249,42 @@ class TagGroupSelect extends React.Component<TagGroupSelectProps, TagGroupSelect
         </div>
         {this.props
           .tagGroupStore!.groups.filter(g => g.alias.toLowerCase().includes(this.state.filter))
-          .map(g => (
-            <Menu.Item key={g._id}>
-              <Tooltip
-                placement="right"
-                title={
-                  <div>
-                    {g.tags.map(tag => (
-                      <Tag>{tag}</Tag>
-                    ))}
-                  </div>
-                }
-              >
-                <a
-                  onClick={e => {
-                    this.props.onSelect(g.tags);
-                    e.preventDefault();
-                    e.stopPropagation();
-                  }}
-                >
-                  {g.alias}
-                </a>
-              </Tooltip>
-            </Menu.Item>
-          ))}
+         .map(g => {
+           let tags = g.tags['default'] || [];
+           if (this.props.website && g.tags[this.props.website]) {
+             tags = [...g.tags[this.props.website], ...g.tags['default']];
+           }
+
+           if (tags.length === 0) { return null; }
+
+           return (
+             <Menu.Item key={g._id}>
+               <Tooltip
+                 placement="right"
+                 title={
+                   <div>
+                     {tags.map(tag => (
+                       <Tag>{tag}</Tag>
+                     ))}
+                   </div>
+                 }
+               >
+                 <a
+                   onClick={e => {
+                     this.props.onSelect(tags);
+                     e.preventDefault();
+                     e.stopPropagation();
+                   }}
+                 >
+                   {g.alias}
+                 </a>
+               </Tooltip>
+             </Menu.Item>
+           );
+         })}
       </Menu>
     );
+
     return (
       <div className="mr-2">
         <Dropdown overlay={menu}>

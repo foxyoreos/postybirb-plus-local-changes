@@ -10,7 +10,7 @@ describe('TagGroupEntity', () => {
     plain = {
       _id: 'id',
       alias: 'alias',
-      tags: ['test'],
+      tags: { "default": ['test'] },
       created: Date.now(),
     };
   });

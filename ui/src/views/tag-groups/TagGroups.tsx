@@ -8,6 +8,8 @@ import TagGroupService from '../../services/tag-group.service';
 import TagInput from '../submissions/submission-forms/form-components/TagInput';
 import { Input, Button, message, Popconfirm, Spin, Empty, Card, Icon } from 'antd';
 import { TagData } from 'postybirb-commons';
+import { WebsiteRegistry } from '../../websites/website-registry';
+import { uiStore } from '../../stores/ui.store'
 
 interface Props {
   tagGroupStore?: TagGroupStore;
@@ -19,7 +21,9 @@ export default class TagGroups extends React.Component<Props> {
   createNewGroup() {
     TagGroupService.create({
       alias: 'New Tag Group',
-      tags: []
+      tags: {
+        "default": [],
+      }
     });
   }
 
@@ -62,8 +66,10 @@ class TagGroupInput extends React.Component<TagGroup, TagGroupInputState> {
     saving: false,
     tagGroup: {
       alias: '',
-      tags: []
-    }
+      tags: {
+        "default": [],
+      }
+    },
   };
 
   private original!: TagGroup;
@@ -71,12 +77,26 @@ class TagGroupInput extends React.Component<TagGroup, TagGroupInputState> {
   constructor(props: TagGroup) {
     super(props);
     this.original = _.cloneDeep(props);
-    this.state.tagGroup = _.cloneDeep(props);
+    /* Conversion to default group */
+    const tagGroup = _.cloneDeep(props);
+
+    console.log(tagGroup.tags, tagGroup.tags.constructor);
+    // @ts-ignore
+    if (tagGroup.tags.constructor === Array) {
+      tagGroup.tags = {
+
+        // @ts-ignore
+        "default": tagGroup.tags,
+      };
+    }
+   
+    this.state.tagGroup = tagGroup;
   }
 
-  handleTagChange = (update: TagData) => {
+  handleTagChange = (website: string, update: TagData) => {
     const copy = _.cloneDeep(this.state.tagGroup);
-    copy.tags = update.value;
+    copy.tags = copy.tags || {};
+    copy.tags[website] = update.value;
     this.setState({ touched: !_.isEqual(copy, this.original), tagGroup: copy });
   };
 
@@ -115,11 +135,13 @@ class TagGroupInput extends React.Component<TagGroup, TagGroupInputState> {
   };
 
   render() {
+    console.log(uiStore);
     return (
       <div>
         <Spin spinning={this.state.saving} delay={500}>
           <Card
             size="small"
+            bodyStyle={{ overflow: 'auto', maxHeight: '200px' }}
             title={
               <Input
                 defaultValue={this.state.tagGroup.alias}
@@ -135,13 +157,31 @@ class TagGroupInput extends React.Component<TagGroup, TagGroupInputState> {
               </Popconfirm>
             ]}
           >
-            <TagInput
-              onChange={this.handleTagChange}
-              hideExtend={true}
-              hideExtra={true}
-              hideTagGroup={true}
-              defaultValue={{ extendDefault: false, value: this.state.tagGroup.tags! }}
-            />
+
+            {WebsiteRegistry.getAllAsArray()
+             .filter(website => website.supportsTags)
+             // @ts-ignore
+             .concat([{ supportsTags: true, name: "Default", internalName: "default" }])
+             .map(website => (
+               <div className="flex mb-1">
+                 <div className="flex-1">
+                   <strong>{website.name}</strong>
+                 </div>
+                 <div className="flex-1">
+                   <TagInput
+                     onChange={this.handleTagChange.bind(this, website.internalName)}
+                     hideExtend={true}
+                     hideExtra={true}
+                     hideTagGroup={true}
+                     defaultValue={{ extendDefault: false, value: (() => {
+                       // @ts-ignore
+                       return this?.state?.tagGroup?.tags[website?.internalName] || [];
+                     })() }}
+                   />
+                 </div>
+               </div>
+             ))}
+
           </Card>
         </Spin>
       </div>

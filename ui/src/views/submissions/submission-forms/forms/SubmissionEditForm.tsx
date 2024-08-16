@@ -597,6 +597,14 @@ class SubmissionEditForm extends React.Component<Props, SubmissionEditFormState>
 
       return (
         <div className="submission-form">
+          {this.isFileSubmission(submission) ? (
+             <img
+                style={{ position: 'fixed', top: '1em', right: '1em', width: '5em' }}
+                alt={submission.primary.name}
+                title={submission.primary.name}
+                src={RemoteService.getFileUrl(submission.primary.preview)}
+             />) : null
+          }
           <div className="flex">
             <Form layout="vertical" style={{ flex: 10 }}>
               {this.isFileSubmission(submission) ? (

@@ -51,6 +51,7 @@ export default class WebsiteSections extends React.Component<WebsiteSectionsProp
               this.props.submissionType === SubmissionType.FILE
                 ? WebsiteRegistry.websites[child.website]?.FileSubmissionForm({
                     defaultData: defaultPart.data,
+                    website: website,
                     part: child,
                     onUpdate: props.onUpdate,
                     problems: props.problems[child.accountId],
@@ -58,6 +59,7 @@ export default class WebsiteSections extends React.Component<WebsiteSectionsProp
                   })
                 : WebsiteRegistry.websites[child.website]?.NotificationSubmissionForm!({
                     defaultData: defaultPart.data,
+                    website: website,
                     part: child,
                     onUpdate: props.onUpdate,
                     problems: props.problems[child.accountId],

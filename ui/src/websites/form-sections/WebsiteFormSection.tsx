@@ -79,6 +79,7 @@ export default abstract class WebsiteFormSection<
           )}
           {showTags ? (
             <TagInput
+              website={this.props.website}
               onChange={this.setValue.bind(this, 'tags')}
               defaultValue={data.tags}
               defaultTags={this.props.defaultData!.tags}
