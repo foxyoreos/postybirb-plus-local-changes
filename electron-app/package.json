@@ -1,6 +1,6 @@
 {
   "name": "postybirb-plus",
-  "version": "3.1.43",
+  "version": "3.1.47",
   "description": "(ClientServer) PostyBirb is an application that helps artists post art and other multimedia to multiple websites more quickly.",
   "main": "dist/main.js",
   "author": "Michael DiCarlo",
@@ -18,6 +18,7 @@
     "build:linux": "electron-builder -l",
     "build:osx": "electron-builder -m",
     "build:windows": "electron-builder -w",
+    "build:rehash": "node hasher.js",
     "build:release": "export $(cat .env | xargs) && electron-builder -mwl -p always",
     "release:windows": "electron-builder -w -p always",
     "release:linux": "electron-builder -l -p always",
@@ -47,6 +48,7 @@
     "@nestjs/schedule": "^0.4.2",
     "@nestjs/websockets": "^7.6.18",
     "@types/node": "^16.10.2",
+    "async-mutex": "^0.5.0",
     "chardet": "^0.8.0",
     "cheerio": "^1.0.0-rc.10",
     "class-transformer": "^0.3.1",
@@ -107,7 +109,8 @@
     "ts-jest": "^26.5.6",
     "ts-loader": "^8.3.0",
     "ts-node": "^9.0.0",
-    "tsconfig-paths": "^3.11.0"
+    "tsconfig-paths": "^3.11.0",
+    "yaml": "^2.5.0"
   },
   "build": {
     "appId": "com.lemonynade.postybirb.plus",
@@ -143,9 +146,11 @@
       ]
     },
     "nsis": {
+      "artifactName": "postybirb-plus-setup-${version}.${ext}",
       "deleteAppDataOnUninstall": true
     },
     "win": {
+      "artifactName": "postybirb-plus-${version}.${ext}",
       "publisherName": [
         "Michael DiCarlo"
       ],

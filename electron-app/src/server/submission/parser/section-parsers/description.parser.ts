@@ -54,7 +54,7 @@ export class DescriptionParser {
     ).trim();
 
     if (description.length) {
-      // Insert {default}, {title}, {tags} shortcuts
+      // Insert {default}, {title}, {tags}, {cw} shortcuts
       let tags = await this.parserService.parseTags(website, defaultPart, websitePart);
       description = this.insertDefaultShortcuts(description, [
         {
@@ -68,6 +68,10 @@ export class DescriptionParser {
         {
           name: 'tags',
           content: website.generateTagsString(tags, description, websitePart),
+        },
+        {
+          name: 'cw',
+          content: FormContent.getSpoilerText(defaultPart.data, websitePart.data),
         },
       ]);
 
