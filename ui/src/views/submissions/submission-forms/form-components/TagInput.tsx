@@ -35,8 +35,10 @@ interface State {
 export default class TagInput extends React.Component<Props, State> {
   state: State = {
     suggestions: [],
-    loading: false
+    loading: false,
   };
+
+  groupedTags: { [tag: string]: boolean } = {};
 
   private data: TagData = {
     extendDefault: true,
@@ -54,6 +56,7 @@ export default class TagInput extends React.Component<Props, State> {
       this.data = props.defaultValue;
     }
 
+    this.groupedTags = {};
     this.options = {
       ...this.options,
       ...props.tagOptions
@@ -128,8 +131,12 @@ export default class TagInput extends React.Component<Props, State> {
       ...(this.state.suggestions || []),
       ...(this.props.defaultValue.value || [])
     ]).map(tag => (
-      <Select.Option key={tag} value={tag}>
-        {tag}
+      <Select.Option
+        key={tag}
+        value={tag}
+        label={<span className={this.groupedTags[tag] ? 'TagInput__Tag--grouped' : ''}>{tag}</span>}
+       >
+        <span className={this.groupedTags[tag] ? 'TagInput__Tag--grouped' : ''}>#{tag}</span>
       </Select.Option>
     ));
     return (
@@ -147,6 +154,7 @@ export default class TagInput extends React.Component<Props, State> {
             onInputKeyDown={this.onKeyDown}
             onSearch={this.onSearch}
             loading={this.state.loading}
+            optionLabelProp="label"
           >
             {selectOptions}
           </Select>
@@ -159,6 +167,7 @@ export default class TagInput extends React.Component<Props, State> {
           {this.props.hideTagGroup ? null : (
             <TagGroupSelect
               website={this.props.website}
+              informGroupedTags={(tags)=>{ this.groupedTags = tags; }}
               onSelect={tags => this.handleTagChange([...this.props.defaultValue.value, ...tags])}
             />
           )}
@@ -214,6 +223,7 @@ const Help: React.SFC<HelpProps> = props => {
 interface TagGroupSelectProps {
   onSelect: (tags: string[]) => void;
   tagGroupStore?: TagGroupStore;
+  informGroupedTags?: (tags) => void;
   website?: string;
 }
 
@@ -229,6 +239,23 @@ class TagGroupSelect extends React.Component<TagGroupSelectProps, TagGroupSelect
   };
 
   render() {
+    if (this.props.informGroupedTags) {
+      let map = this.props.tagGroupStore!.groups.reduce((result, group) => {
+        if (!this.props.website || !group.tags[this.props.website]) {
+          return result;
+        }
+
+        let tags = [...group.tags['default'], ...group.tags[this.props.website]];
+        tags.forEach((tag) => {
+          result[tag] = true;
+        });
+
+        return result;
+      }, {});
+
+      this.props.informGroupedTags(map);
+    }
+
     const menu = (
       <Menu style={{ maxHeight: '33vh', overflow: 'auto', padding: '0' }}>
         <div

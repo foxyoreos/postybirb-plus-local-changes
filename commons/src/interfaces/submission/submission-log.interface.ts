@@ -4,6 +4,7 @@ import { Submission } from './submission.interface';
 import { EntityIntf } from '../database/entity.interface';
 
 export interface SubmissionLog extends EntityIntf {
+  defaultPart?: SubmissionPart<any>;
   submission: Submission;
   parts: PartWithResponse[];
   version: string;

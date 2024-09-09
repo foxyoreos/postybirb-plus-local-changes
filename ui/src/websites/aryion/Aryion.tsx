@@ -15,6 +15,7 @@ export class Aryion extends WebsiteImpl {
   supportsAdditionalFiles: boolean = false;
   supportsTags: boolean = true;
   loginUrl: string = 'https://aryion.com/forum/ucp.php?mode=login';
+  searchProvider = AryionTagSearchProvider;
 
   FileSubmissionForm = (props: WebsiteSectionProps<FileSubmission, AryionFileOptions>) => (
     <AryionFileSubmissionForm

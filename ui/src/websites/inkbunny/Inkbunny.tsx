@@ -15,6 +15,7 @@ export class Inkbunny extends WebsiteImpl {
   supportsAdditionalFiles: boolean = true;
   supportsTags: boolean = true;
   loginUrl: string = '';
+  searchProvider = InkbunnyTagSearchProvider;
 
   LoginDialog = (props: LoginDialogProps) => <InkbunnyLogin {...props} />;
   FileSubmissionForm = (props: WebsiteSectionProps<FileSubmission, InkbunnyFileOptions>) => (

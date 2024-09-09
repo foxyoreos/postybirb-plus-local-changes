@@ -121,7 +121,8 @@ export class DescriptionParser {
             match
               .replace(/(\{|\})/g, '')
               .split(':')
-              .pop() || '';
+              .slice(1)
+              .join(':') || '';
 
           content = content.replace(/\{\$\}/gm, matchedContent);
           description = description.replace(match, content);

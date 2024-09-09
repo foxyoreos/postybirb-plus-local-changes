@@ -9,26 +9,34 @@ import TagInput from '../submissions/submission-forms/form-components/TagInput';
 import { Input, Button, message, Popconfirm, Spin, Empty, Card, Icon } from 'antd';
 import { TagData } from 'postybirb-commons';
 import { WebsiteRegistry } from '../../websites/website-registry';
+import { LoginStatusStore } from '../../stores/login-status.store';
 import { uiStore } from '../../stores/ui.store'
 
 interface Props {
   tagGroupStore?: TagGroupStore;
+  loginStatusStore?: LoginStatusStore;
 }
 
-@inject('tagGroupStore')
+@inject('tagGroupStore', 'loginStatusStore')
 @observer
 export default class TagGroups extends React.Component<Props> {
   createNewGroup() {
     TagGroupService.create({
-      alias: 'New Tag Group',
+      alias: '  ',
       tags: {
         "default": [],
       }
     });
   }
 
+
   render() {
     const groups = this.props.tagGroupStore!.groups;
+    const accounts = (this.props.loginStatusStore!.statuses || []).reduce((result, account) => {
+      result[account.website] = true;
+      return result;
+    }, {});
+
     return (
       <div>
         {groups.length ? (
@@ -38,7 +46,7 @@ export default class TagGroups extends React.Component<Props> {
             </Button>
             {groups.map(g => (
               <div className="tag-group-display">
-                <TagGroupInput key={g._id} {...g} />
+                <TagGroupInput key={g._id} accountMap={accounts} loginStatusStore={this.props.loginStatusStore} tagGroup={g} />
               </div>
             ))}
           </div>
@@ -60,7 +68,13 @@ interface TagGroupInputState {
   tagGroup: Partial<TagGroup>;
 }
 
-class TagGroupInput extends React.Component<TagGroup, TagGroupInputState> {
+interface TagGroupProps {
+  tagGroup: TagGroup;
+  loginStatusStore?: LoginStatusStore;
+  accountMap: { [name: string]: boolean };
+}
+
+class TagGroupInput extends React.Component<TagGroupProps, TagGroupInputState> {
   state: TagGroupInputState = {
     touched: false,
     saving: false,
@@ -74,12 +88,11 @@ class TagGroupInput extends React.Component<TagGroup, TagGroupInputState> {
 
   private original!: TagGroup;
 
-  constructor(props: TagGroup) {
+  constructor(props: TagGroupProps) {
     super(props);
-    this.original = _.cloneDeep(props);
+    this.original = _.cloneDeep(props.tagGroup);
     /* Conversion to default group */
-    const tagGroup = _.cloneDeep(props);
-
+    const tagGroup = _.cloneDeep(props.tagGroup);
     console.log(tagGroup.tags, tagGroup.tags.constructor);
     // @ts-ignore
     if (tagGroup.tags.constructor === Array) {
@@ -125,7 +138,7 @@ class TagGroupInput extends React.Component<TagGroup, TagGroupInputState> {
   };
 
   onDelete = () => {
-    TagGroupService.deleteTagGroup(this.props._id)
+    TagGroupService.deleteTagGroup(this.props.tagGroup._id)
       .then(() => {
         message.success('Tag group removed.');
       })
@@ -135,7 +148,9 @@ class TagGroupInput extends React.Component<TagGroup, TagGroupInputState> {
   };
 
   render() {
-    console.log(uiStore);
+
+    // @ts-ignore
+    window.loginStatusStore = this.props.loginStatusStore;
     return (
       <div>
         <Spin spinning={this.state.saving} delay={500}>
@@ -151,7 +166,9 @@ class TagGroupInput extends React.Component<TagGroup, TagGroupInputState> {
               />
             }
             actions={[
-              <Icon type="save" key="save" onClick={this.onSave} />,
+              this.state.touched ?
+                (<Icon type="save" key="save" onClick={this.onSave} />) :
+                (<Icon type="check" key="save" onClick={this.onSave} />),
               <Popconfirm title="Are you sure?" onConfirm={this.onDelete}>
                 <Icon type="delete" key="delete" />
               </Popconfirm>
@@ -160,6 +177,9 @@ class TagGroupInput extends React.Component<TagGroup, TagGroupInputState> {
 
             {WebsiteRegistry.getAllAsArray()
              .filter(website => website.supportsTags)
+             .filter(website => {
+               return !!this.props.accountMap[website.internalName];
+             })
              // @ts-ignore
              .concat([{ supportsTags: true, name: "Default", internalName: "default" }])
              .map(website => (
@@ -173,6 +193,8 @@ class TagGroupInput extends React.Component<TagGroup, TagGroupInputState> {
                      hideExtend={true}
                      hideExtra={true}
                      hideTagGroup={true}
+                     searchProvider={website.searchProvider}
+                     website={website.internalName}
                      defaultValue={{ extendDefault: false, value: (() => {
                        // @ts-ignore
                        return this?.state?.tagGroup?.tags[website?.internalName] || [];

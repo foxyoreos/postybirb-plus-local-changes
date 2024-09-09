@@ -67,3 +67,11 @@
 .ant-select-tree-title .select-tree-website-tag {
   display: none;
 }
+
+.TagInput__Tag--grouped {
+  background-color: rgba(50, 255, 50, 0.15);
+}
+
+.TagInput__Tag--ungrouped {
+  background-color: rgba(255, 150, 0, 0.15)
+}

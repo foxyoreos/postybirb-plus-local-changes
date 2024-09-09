@@ -2,10 +2,12 @@ import React from 'react';
 import { SubmissionType } from 'postybirb-commons';
 import { SubmissionLog } from 'postybirb-commons';
 import SubmissionLogService from '../../services/submission-log.service';
+import { FileSubmission } from 'postybirb-commons';
 import { saveAs } from 'file-saver';
 import { List, Button, Icon, Typography, message, Modal } from 'antd';
 import SubmissionService from '../../services/submission.service';
 import BrowserLink from '../../components/BrowserLink';
+import RemoteService from '../../services/remote.service';
 
 interface Props {
   type: SubmissionType;
@@ -88,10 +90,30 @@ export default class SubmissionLogs extends React.Component<Props, State> {
                 </span>
               ]}
             >
+              {/*item.submission.type === SubmissionType.FILE && (
+                <img
+                  style={{ maxWidth: '200px', maxHeight: '100px' }}
+                  alt={(item.submission as FileSubmission).primary.name}
+                  title={(item.submission as FileSubmission).primary.name}
+                  src={RemoteService.getFileUrl((item.submission as FileSubmission).primary.preview)}/>
+              )*/}
               <List.Item.Meta
-                title={item.submission.title}
+                title={item?.defaultPart?.data?.title || item.submission.title}
                 description={<div>Posted at {new Date(item.created).toLocaleString()}</div>}
               />
+              <Typography.Text copyable={{ text: (() => {
+                                 return item.parts.reduce((result, p) => {
+                                   if (p.part.postStatus !== 'SUCCESS') {
+                                     return result;
+                                   }
+
+                                   result = result + `{[only=${p.part.website.toLowerCase()}]text:${p.part.postedTo}}`;
+                                   return result;
+                                 }, '');
+                               })() }}>
+                Copy Submission URL Shortcuts
+              </Typography.Text>
+
               <div className="flex break-all">
                 <div className="flex-1">
                   <Typography.Title level={4}>Successful</Typography.Title>

@@ -22,6 +22,7 @@ export class Itaku extends WebsiteImpl {
   name: string = 'Itaku';
   supportsTags: boolean = true;
   supportsAdditionalFiles: boolean = false;
+  searchProvider = ItakuTagSearchProvider;
 
   FileSubmissionForm = (props: WebsiteSectionProps<FileSubmission, ItakuFileOptions>) => (
     <ItakuFileSubmissionForm

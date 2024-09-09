@@ -16,6 +16,7 @@ export interface Website {
   name: string;
   supportsAdditionalFiles?: boolean;
   supportsTags?: boolean;
+  searchProvider?: (value: string) => Promise<string[]>;
   LoginDialog: (props: LoginDialogProps) => JSX.Element;
   LoginHelp?: (props: LoginDialogProps) => JSX.Element;
   FileSubmissionForm: (props: WebsiteSectionProps<FileSubmission, any>) => JSX.Element;
