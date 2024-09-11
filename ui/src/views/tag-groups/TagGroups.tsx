@@ -22,13 +22,12 @@ interface Props {
 export default class TagGroups extends React.Component<Props> {
   createNewGroup() {
     TagGroupService.create({
-      alias: '  ',
+      alias: ` 0${_.uniqueId()}`,
       tags: {
         "default": [],
       }
     });
   }
-
 
   render() {
     const groups = this.props.tagGroupStore!.groups;
@@ -65,6 +64,7 @@ export default class TagGroups extends React.Component<Props> {
 interface TagGroupInputState {
   touched: boolean;
   saving: boolean;
+  open: boolean;
   tagGroup: Partial<TagGroup>;
 }
 
@@ -78,6 +78,7 @@ class TagGroupInput extends React.Component<TagGroupProps, TagGroupInputState> {
   state: TagGroupInputState = {
     touched: false,
     saving: false,
+    open: false,
     tagGroup: {
       alias: '',
       tags: {
@@ -87,13 +88,14 @@ class TagGroupInput extends React.Component<TagGroupProps, TagGroupInputState> {
   };
 
   private original!: TagGroup;
+  private websites!: any[];
 
   constructor(props: TagGroupProps) {
     super(props);
     this.original = _.cloneDeep(props.tagGroup);
+    this.websites = WebsiteRegistry.getAllAsArray();
     /* Conversion to default group */
     const tagGroup = _.cloneDeep(props.tagGroup);
-    console.log(tagGroup.tags, tagGroup.tags.constructor);
     // @ts-ignore
     if (tagGroup.tags.constructor === Array) {
       tagGroup.tags = {
@@ -137,6 +139,10 @@ class TagGroupInput extends React.Component<TagGroupProps, TagGroupInputState> {
       });
   };
 
+  toggle = () => {
+    this.setState((state) => ({ open: !state.open }));
+  }
+
   onDelete = () => {
     TagGroupService.deleteTagGroup(this.props.tagGroup._id)
       .then(() => {
@@ -149,8 +155,6 @@ class TagGroupInput extends React.Component<TagGroupProps, TagGroupInputState> {
 
   render() {
 
-    // @ts-ignore
-    window.loginStatusStore = this.props.loginStatusStore;
     return (
       <div>
         <Spin spinning={this.state.saving} delay={500}>
@@ -158,12 +162,18 @@ class TagGroupInput extends React.Component<TagGroupProps, TagGroupInputState> {
             size="small"
             bodyStyle={{ overflow: 'auto', maxHeight: '200px' }}
             title={
-              <Input
-                defaultValue={this.state.tagGroup.alias}
-                required={true}
-                onBlur={this.handleNameChange}
-                placeholder="Name"
-              />
+              <React.Fragment>
+                <Input
+                  defaultValue={this.state.tagGroup.alias}
+                  style={{width: 'calc(100% - 1.75em)', marginRight: '0.25em' }}
+                  required={true}
+                  onBlur={this.handleNameChange}
+                  placeholder="Name"
+                />
+                {this.state.open ?
+                 <Icon type="caret-down" key="hide" onClick={this.toggle} /> :
+                 <Icon type="caret-right" key="expand" onClick={this.toggle} />}
+              </React.Fragment>
             }
             actions={[
               this.state.touched ?
@@ -175,7 +185,7 @@ class TagGroupInput extends React.Component<TagGroupProps, TagGroupInputState> {
             ]}
           >
 
-            {WebsiteRegistry.getAllAsArray()
+            {this.state.open && this.websites
              .filter(website => website.supportsTags)
              .filter(website => {
                return !!this.props.accountMap[website.internalName];
