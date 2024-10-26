@@ -221,7 +221,7 @@ const Help: React.SFC<HelpProps> = props => {
 };
 
 interface TagGroupSelectProps {
-  onSelect: (tags: string[]) => void;
+  onSelect: (tags: string[], name?: string, full?: any) => void;
   tagGroupStore?: TagGroupStore;
   informGroupedTags?: (tags) => void;
   website?: string;
@@ -233,7 +233,7 @@ interface TagGroupSelectState {
 
 @inject('tagGroupStore')
 @observer
-class TagGroupSelect extends React.Component<TagGroupSelectProps, TagGroupSelectState> {
+export class TagGroupSelect extends React.Component<TagGroupSelectProps, TagGroupSelectState> {
   state: TagGroupSelectState = {
     filter: ''
   };
@@ -282,7 +282,7 @@ class TagGroupSelect extends React.Component<TagGroupSelectProps, TagGroupSelect
              tags = [...g.tags[this.props.website], ...g.tags['default']];
            }
 
-           if (tags.length === 0) { return null; }
+           if (this.props.website && tags.length === 0) { return null; }
 
            return (
              <Menu.Item key={g._id}>
@@ -298,7 +298,7 @@ class TagGroupSelect extends React.Component<TagGroupSelectProps, TagGroupSelect
                >
                  <a
                    onClick={e => {
-                     this.props.onSelect(tags);
+                     this.props.onSelect(tags, g.alias, g.tags);
                      e.preventDefault();
                      e.stopPropagation();
                    }}

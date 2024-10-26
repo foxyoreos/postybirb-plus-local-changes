@@ -26,6 +26,7 @@ import { UserAccountDto } from 'postybirb-commons';
 import { submissionStore } from '../../../../stores/submission.store';
 import PostService from '../../../../services/post.service';
 import FallbackStoryInput from '../form-components/FallbackStoryInput';
+import TagInput, { TagGroupSelect } from '../form-components/TagInput';
 import RemoteService from '../../../../services/remote.service';
 import SubmissionImageCropper from '../../submission-image-cropper/SubmissionImageCropper';
 import {
@@ -294,6 +295,7 @@ class SubmissionEditForm extends React.Component<Props, SubmissionEditFormState>
       websiteData[status.website].key = name;
       websiteData[status.website].value = status.website;
       (websiteData[status.website] as any).search = status.website.toLowerCase();
+      const searchString = `${name} ${status.alias}`.toLowerCase();
       (websiteData[status.website].children as any[]).push({
         key: status._id,
         value: status._id,
@@ -302,7 +304,7 @@ class SubmissionEditForm extends React.Component<Props, SubmissionEditFormState>
             <span className="select-tree-website-tag">[{name}]</span> {status.alias}
           </span>
         ),
-        search: `${name} ${status.alias}`.toLowerCase(),
+        search: searchString,
         isLeaf: true
       });
     });
@@ -599,10 +601,12 @@ class SubmissionEditForm extends React.Component<Props, SubmissionEditFormState>
         <div className="submission-form">
           {this.isFileSubmission(submission) ? (
              <img
-                style={{ position: 'fixed', top: '1em', right: '1em', width: '5em' }}
+                style={{ position: 'fixed', top: '1em', right: '1em' }}
+                className="SubmissionEditForm__PreviewImage"
                 alt={submission.primary.name}
                 title={submission.primary.name}
-                src={RemoteService.getFileUrl(submission.primary.preview)}
+                src={RemoteService.getFileUrl(submission.primary.location)}
+
              />) : null
           }
           <div className="flex">
@@ -838,6 +842,29 @@ class SubmissionEditForm extends React.Component<Props, SubmissionEditFormState>
                   onChange={this.handleWebsiteSelect}
                   filterTreeNode={(input, node) => node.props.search.includes(input.toLowerCase())}
                   placeholder="Select websites to post to"
+                />
+              </Form.Item>
+
+            <Form.Item className="form-section jumpable-section">
+                <Typography.Title level={3}>
+                  <span className="form-section-header nav-section-anchor" id="#OmniGroups">
+                    Omni Groups
+                  </span>
+                </Typography.Title>
+
+              <TagGroupSelect
+                onSelect={(tags, name, full) => {
+                  const update = Object.values(this.state.parts).reduce((result: Array<SubmissionPart<any>>, part) => {
+                       if (!full[part.website]) {
+                          return result;
+                       }
+
+                       result.push(part);
+                       part.data.tags.value = _.uniq([...part.data.tags.value, ...full[part.website]]);
+                       return result;
+                   }, []);
+                   this.onUpdate(update);
+                }}
                 />
               </Form.Item>
 

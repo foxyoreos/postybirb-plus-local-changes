@@ -75,3 +75,11 @@
 .TagInput__Tag--ungrouped {
   background-color: rgba(255, 150, 0, 0.15)
 }
+.SubmissionEditForm__PreviewImage {
+  width: 5em;
+}
+.SubmissionEditForm__PreviewImage:hover {
+  width: fit-content;
+  max-height: 100%;
+  z-index: 1000;
+}

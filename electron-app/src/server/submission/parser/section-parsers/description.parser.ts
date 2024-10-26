@@ -173,6 +173,7 @@ export class DescriptionParser {
       .replace(/\[/g, '\\[')
       .replace(/\]/g, '\\]')
       .replace(/\{/g, '\\{')
+      .replace(/\?/g, '\\?')
       .replace(/\}/g, '\\}');
   }
 
