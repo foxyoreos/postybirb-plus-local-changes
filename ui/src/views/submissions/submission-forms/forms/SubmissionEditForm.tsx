@@ -866,7 +866,29 @@ class SubmissionEditForm extends React.Component<Props, SubmissionEditFormState>
                    this.onUpdate(update);
                 }}
                 />
-              </Form.Item>
+
+                <Typography.Title level={3}>
+                  <span className="form-section-header nav-section-anchor" id="#OmniGroupsRemove">
+                    Omni Groups (Remove)
+                  </span>
+                </Typography.Title>
+
+
+              <TagGroupSelect
+                onSelect={(tags, name, full) => {
+                  const update = Object.values(this.state.parts).reduce((result: Array<SubmissionPart<any>>, part) => {
+                       if (!full[part.website]) {
+                          return result;
+                       }
+
+                       result.push(part);
+                       part.data.tags.value = _.difference(part.data.tags.value, full[part.website]);
+                       return result;
+                   }, []);
+                   this.onUpdate(update);
+                }}
+                />
+             </Form.Item>
 
               <WebsiteSections
                 {...this.state}
