@@ -1,5 +1,6 @@
 import React from 'react';
 import _ from 'lodash';
+import axios from "../../../../utils/http";
 import { WebsiteRegistry } from '../../../../websites/website-registry';
 import DefaultFormSection from '../form-sections/DefaultFormSection';
 import SubmissionService from '../../../../services/submission.service';
@@ -66,6 +67,7 @@ export interface SubmissionEditFormState {
   touched: boolean;
   showThumbnailCropper: boolean;
   thumbnailFileForCrop?: File;
+  thumbnailFilePathForCrop?: string;
   imageCropperResolve?: (file: File) => void;
   imageCropperReject?: () => void;
   altTexts: { [key: string]: string };
@@ -444,6 +446,48 @@ class SubmissionEditForm extends React.Component<Props, SubmissionEditFormState>
     this.checkProblems();
   }
 
+  cropThumbnailString(filePath: string): Promise<any> {
+    return new Promise((resolve, reject) => {
+      this.setState({
+        showThumbnailCropper: true,
+        thumbnailFilePathForCrop: filePath,
+        imageCropperResolve: resolve,
+        imageCropperReject: reject
+      });
+    }).then(async (file) => {
+       const url = RemoteService.getUrl(`/submission/change/thumbnail/${this.state.submission!._id}`);
+       if (this.state.submission && this.isFileSubmission(this.state.submission)) {
+       const formData = new FormData();
+       formData.append('file', file as File);
+       formData.append('path', '');
+       const response = await axios.post(
+         url,
+         formData,
+         // { file: file, path: RemoteService.getFileUrl(this.state.submission!.primary.location) },
+         { headers: { 'Authorization': window.AUTH_ID } });
+
+       this.setState({
+          submission: response.data.submission
+       });
+       this.checkProblems();
+
+       }
+       // SubmissionService.changeFileSubmissionThumbnailFile(
+       //    file,
+       //    this.state.submission!._id,
+       //    RemoteService.getFileUrl(submission.primary.location)
+       // );
+       return file;
+    }).finally(() => {
+      this.setState({
+        showThumbnailCropper: false,
+        thumbnailFilePathForCrop: undefined,
+        imageCropperResolve: undefined,
+        imageCropperReject: undefined
+      });
+    });
+  }
+
   cropThumbnail(file: File): Promise<any> {
     return new Promise((resolve, reject) => {
       this.setState({
@@ -693,6 +737,10 @@ class SubmissionEditForm extends React.Component<Props, SubmissionEditFormState>
                             Remove
                           </span>
                         ) : (
+                          <>
+                          <span className="text-link" onClick={async () => {
+                             const file = await this.cropThumbnailString(RemoteService.getFileUrl(submission.primary.location));
+                          }}>Reuse</span>
                           <Upload
                             accept="image/jpeg,image/png"
                             showUploadList={false}
@@ -707,6 +755,7 @@ class SubmissionEditForm extends React.Component<Props, SubmissionEditFormState>
                           >
                             <span className="text-link">Set</span>
                           </Upload>
+                          </>
                         )
                       }
                       bodyStyle={{ padding: '0' }}
@@ -714,6 +763,7 @@ class SubmissionEditForm extends React.Component<Props, SubmissionEditFormState>
                       <SubmissionImageCropper
                         visible={this.state.showThumbnailCropper}
                         file={this.state.thumbnailFileForCrop!}
+                        fileString={this.state.thumbnailFilePathForCrop!}
                         onSubmit={this.state.imageCropperResolve!}
                         onClose={this.state.imageCropperReject!}
                       />

@@ -6,6 +6,7 @@ import { Modal, Radio } from 'antd';
 interface Props {
   visible: boolean;
   file: File;
+  fileString?: string;
   onSubmit: (file: File) => void;
   onClose: () => void;
 }
@@ -21,9 +22,10 @@ export default class SubmissionImageCropper extends React.Component<Props, State
   resolveCroppedImg() {
     const { naturalWidth, naturalHeight } = this.cropper.getCanvasData();
     const canvas = this.cropper.getCroppedCanvas();
-    if (canvas.height !== naturalHeight || canvas.width !== naturalWidth) {
+    if (canvas.height !== naturalHeight || canvas.width !== naturalWidth || !this.props.file) {
       canvas.toBlob(blob => {
-        const file = new File([blob], this.props.file.name, { type: this.props.file.type });
+        const fileParams = this.props.file || { name: 'source', type: 'image/jpeg' }
+        const file = new File([blob], fileParams.name, { type: fileParams.type });
         this.props.onSubmit(file);
       });
     } else {
@@ -32,6 +34,7 @@ export default class SubmissionImageCropper extends React.Component<Props, State
   }
 
   render() {
+    const fileString = this.props.file ? this.props.file['path'] : this.props.fileString;
     return (
       <Modal
         title={
@@ -62,7 +65,7 @@ export default class SubmissionImageCropper extends React.Component<Props, State
         onOk={this.resolveCroppedImg.bind(this)}
       >
         <div className="w-full h-full text-center">
-          {this.props.file ? (
+          {fileString ? (
             <Cropper
               style={{ height: '100%', width: '100%' }}
               autoCropArea={1}
@@ -70,7 +73,7 @@ export default class SubmissionImageCropper extends React.Component<Props, State
               guides={false}
               zoomable={false}
               movable={false}
-              src={this.props.file['path']}
+              src={fileString}
               ref={cropper => {
                 this.cropper = cropper;
               }}
