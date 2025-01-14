@@ -21,9 +21,28 @@ interface WebsiteSectionsProps {
   submissionType: SubmissionType;
 }
 
+interface WebsiteSectionsState {
+  checks: { [key: string]: boolean };
+}
+
 @inject('loginStatusStore')
 @observer
 export default class WebsiteSections extends React.Component<WebsiteSectionsProps> {
+  state: WebsiteSectionsState = {
+    checks: {},
+  };
+
+  toggleSection(section: string) {
+    this.setState((state: WebsiteSectionsState) => {
+      return {
+        checks: {
+          [section]: !state.checks[section],
+          ...state.checks,
+        }
+      };
+    });
+  }
+
   render() {
     const props = this.props;
     const defaultPart = props.parts.default;
@@ -81,6 +100,10 @@ export default class WebsiteSections extends React.Component<WebsiteSectionsProp
               <Tabs.TabPane
                 tab={
                   <span>
+                    <input type="checkbox"
+                         value={!!this.state.checks[`${website}-${section.alias}`] ? "checked" : undefined}
+                         onChange={this.toggleSection.bind(this, `${website}-${section.alias}`)}/>
+
                     <span className="mr-1">{section.alias}</span>
                     {section.problems.length ? <Badge count={section.problems.length} /> : null}
                   </span>
