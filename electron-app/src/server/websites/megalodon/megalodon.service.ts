@@ -183,6 +183,8 @@ export abstract class Megalodon extends Website {
     return this.createPostResponse({ source });
   }
 
+  /* TODO foxyoreos: split based on <hr />
+   * Keep the same options, but drop the files. Abstract these out into private methods that get called after splitting the data.*/
   async postNotificationSubmission(
     cancellationToken: CancellationToken,
     data: PostData<Submission, MastodonNotificationOptions>,

@@ -129,6 +129,9 @@ export class Itaku extends Website {
     }
   }
 
+  /* TODO: foxyoreos - fetch image IDs and attach to posts. */
+  /* Async fetchImages () {} */
+
   async postFileSubmission(
     cancellationToken: CancellationToken,
     data: FilePostData<ItakuFileOptions>,
@@ -148,6 +151,11 @@ export class Itaku extends Website {
     }
 
     if (haveMultipleFiles) {
+      /* Don't include tags/warnings on the post itself for multi-image uploads
+       * - the images will already have them, and the posts look better when
+       * they're clean. */
+      data.tags = [];
+      data.options.spoilerText = null;
       return this.makePost(data, imageIds);
     } else {
       return this.createPostResponse({

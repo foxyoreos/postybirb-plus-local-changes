@@ -360,6 +360,7 @@ export class Bluesky extends Website {
     const files = [data.primary, ...data.additional];
     const embeds = await this.uploadEmbeds(agent, files, data.options.altText);
 
+    /* TODO: @foxyoreos add graphic media option. */
     let labelsRecord: ComAtprotoLabelDefs.SelfLabels | undefined;
     if (data.options.label_rating) {
       labelsRecord = {
