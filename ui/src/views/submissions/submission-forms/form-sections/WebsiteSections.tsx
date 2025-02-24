@@ -3,7 +3,7 @@ import _ from 'lodash';
 import { SubmissionPart } from 'postybirb-commons';
 import { loginStatusStore, LoginStatusStore } from '../../../../stores/login-status.store';
 import { WebsiteRegistry } from '../../../../websites/website-registry';
-import { Form, Typography, Tabs, Badge, Empty } from 'antd';
+import { Form, Typography, Tabs, Badge, Empty, Icon } from 'antd';
 import { inject, observer } from 'mobx-react';
 import { SubmissionType } from 'postybirb-commons';
 import { FileSubmission } from 'postybirb-commons';
@@ -23,6 +23,7 @@ interface WebsiteSectionsProps {
 
 interface WebsiteSectionsState {
   checks: { [key: string]: boolean };
+  expanded: { [key: string]: boolean };
 }
 
 @inject('loginStatusStore')
@@ -30,6 +31,7 @@ interface WebsiteSectionsState {
 export default class WebsiteSections extends React.Component<WebsiteSectionsProps> {
   state: WebsiteSectionsState = {
     checks: {},
+    expanded: {},
   };
 
   toggleSection(section: string) {
@@ -38,7 +40,18 @@ export default class WebsiteSections extends React.Component<WebsiteSectionsProp
         checks: {
           [section]: !state.checks[section],
           ...state.checks,
-        }
+        },
+      };
+    });
+  }
+
+  toggleWebsite(website: string) {
+    this.setState((state: WebsiteSectionsState) => {
+      return {
+        expanded: {
+          ...state.expanded,
+          [website]: !state.expanded[website],
+        },
       };
     });
   }
@@ -62,6 +75,16 @@ export default class WebsiteSections extends React.Component<WebsiteSectionsProp
 
       const childrenSections = sortedChildren
         .map(child => {
+          /* TODO: turn off rendering here, this will use the same amount of CPU stuff
+          /* even when it's condensed. Let's just filter to get over it. */
+          if (!this.state.expanded[website]) {
+            return {
+              alias: loginStatusStore!.getAliasForAccountId(child.accountId),
+              problems: _.get(props.problems[child.accountId], 'problems', []),
+              key: child.accountId,
+            };
+          }
+
           return {
             alias: loginStatusStore!.getAliasForAccountId(child.accountId),
             problems: _.get(props.problems[child.accountId], 'problems', []),
@@ -94,7 +117,12 @@ export default class WebsiteSections extends React.Component<WebsiteSectionsProp
             <span className="form-section-header nav-section-anchor" id={`#${website}`}>
               {WebsiteRegistry.find(website)?.name}
             </span>
-          </Typography.Title>
+            {this.state.expanded[website] ?
+             <Icon type="caret-down" key="hide" onClick={this.toggleWebsite.bind(this, website)} /> :
+             <Icon type="caret-right" key="expand" onClick={this.toggleWebsite.bind(this, website)} />
+            }
+             </Typography.Title>
+          {this.state.expanded[website] &&
           <Tabs>
             {childrenSections.map(section => (
               <Tabs.TabPane
@@ -120,6 +148,7 @@ export default class WebsiteSections extends React.Component<WebsiteSectionsProp
               </Tabs.TabPane>
             ))}
           </Tabs>
+        }
         </Form.Item>
       );
     });

@@ -17,9 +17,17 @@ interface Props {
   loginStatusStore?: LoginStatusStore;
 }
 
+interface TagGroupsState {
+  filter: string;
+}
+
 @inject('tagGroupStore', 'loginStatusStore')
 @observer
 export default class TagGroups extends React.Component<Props> {
+  state: TagGroupsState = {
+    filter: ''
+  };
+
   createNewGroup() {
     TagGroupService.create({
       alias: ` 0${_.uniqueId()}`,
@@ -36,14 +44,23 @@ export default class TagGroups extends React.Component<Props> {
       return result;
     }, {});
 
+    const filteredGroups = groups.filter(g => g.alias.toLowerCase().includes(this.state.filter));
+
     return (
       <div>
         {groups.length ? (
           <div>
+            <Input.Search
+              autoFocus
+              allowClear
+              placeholder="Search"
+              value={this.state.filter}
+              onChange={e => this.setState({ filter: e.target.value.toLowerCase() })}
+            />
             <Button className="mb-2" type="primary" onClick={this.createNewGroup}>
               Add New Group
             </Button>
-            {groups.map(g => (
+            {filteredGroups.map(g => (
               <div className="tag-group-display">
                 <TagGroupInput key={g._id} accountMap={accounts} loginStatusStore={this.props.loginStatusStore} tagGroup={g} />
               </div>
@@ -142,6 +159,7 @@ class TagGroupInput extends React.Component<TagGroupProps, TagGroupInputState> {
   toggle = () => {
     this.setState((state) => ({ open: !state.open }));
   }
+
 
   onDelete = () => {
     TagGroupService.deleteTagGroup(this.props.tagGroup._id)

@@ -140,9 +140,11 @@ class SubmissionEditForm extends React.Component<Props, SubmissionEditFormState>
   }
 
   onUpdate = (updatePart: SubmissionPart<any> | Array<SubmissionPart<any>>) => {
-    const parts = _.cloneDeep(this.state.parts);
-    const updateParts = Array.isArray(updatePart) ? updatePart : [updatePart];
-    updateParts.forEach(p => (parts[p.accountId] = p));
+    const parts = _.cloneDeep(this.state.parts); /* This is fast... */
+    const updateParts = Array.isArray(updatePart) ? updatePart : [updatePart]; /* Now we go over the updates. */
+    updateParts.forEach(p => (parts[p.accountId] = p)); /* we set a new part onto the update part? */
+
+
     const isTouched: boolean = !_.isEqual(parts, this.original.parts);
     this.setState({ parts, touched: isTouched });
     this.checkProblems();

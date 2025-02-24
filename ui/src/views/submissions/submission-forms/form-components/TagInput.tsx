@@ -257,7 +257,7 @@ export class TagGroupSelect extends React.Component<TagGroupSelectProps, TagGrou
     }
 
     const menu = (
-      <Menu style={{ maxHeight: '33vh', overflow: 'auto', padding: '0' }}>
+      <Menu mode="inline" style={{ maxHeight: '33vh', overflow: 'auto', padding: '0' }}>
         <div
           className="sticky top-0 z-10"
           style={{ background: 'inherit', minWidth: 300 }}
@@ -271,7 +271,7 @@ export class TagGroupSelect extends React.Component<TagGroupSelectProps, TagGrou
             allowClear
             placeholder="Search"
             value={this.state.filter}
-            onChange={e => this.setState({ filter: e.target.value.trim().toLowerCase() })}
+            onChange={e => this.setState({ filter: e.target.value.toLowerCase() })}
           />
         </div>
         {this.props
@@ -314,10 +314,10 @@ export class TagGroupSelect extends React.Component<TagGroupSelectProps, TagGrou
 
     return (
       <div className="mr-2">
-        <Dropdown overlay={menu}>
-          <span className="ant-dropdown-link text-link">
+        <Dropdown overlay={menu} trigger={['click']}>
+          <a className="ant-dropdown-link text-link" href="#">
             Apply Tag Group <Icon type="down" />
-          </span>
+          </a>
         </Dropdown>
       </div>
     );
