@@ -42,7 +42,12 @@ export class ParserService {
     private readonly fileManipulator: FileManipulationService,
     websitesService: WebsitesService,
   ) {
-    this.descriptionParser = new DescriptionParser(customShortcuts, websitesService, settings, this);
+    this.descriptionParser = new DescriptionParser(
+      customShortcuts,
+      websitesService,
+      settings,
+      this,
+    );
   }
 
   public async parse(
@@ -201,6 +206,8 @@ export class ParserService {
         options: {
           contentType: file.mimetype,
           filename: this.parseFileName(file.name),
+          height: file.height,
+          width: file.width,
         },
       },
       altText: file.altText || '',
@@ -221,7 +228,10 @@ export class ParserService {
           file.buffer,
           file.mimetype,
           scaleOptions,
-          { convertToJPEG: scaleOptions.converToJPEG },
+          {
+            convertToJPEG: scaleOptions.converToJPEG,
+            noTransparency: scaleOptions.noTransparency,
+          },
         );
         if (mimetype !== file.mimetype) {
           record.file.options.filename = this.fixFileExtension(mimetype, file.name);

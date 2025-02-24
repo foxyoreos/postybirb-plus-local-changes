@@ -1,5 +1,12 @@
+import { ReplyRef } from '@atproto/api/dist/client/types/app/bsky/feed/post';
+import { JobStatus } from '@atproto/api/dist/client/types/app/bsky/video/defs';
 import { Injectable } from '@nestjs/common';
+import FormData from 'form-data';
+import fetch from 'node-fetch';
 import {
+  BlueskyAccountData,
+  BlueskyFileOptions,
+  BlueskyNotificationOptions,
   DefaultOptions,
   FileRecord,
   FileSubmission,
@@ -7,12 +14,10 @@ import {
   PostResponse,
   Submission,
   SubmissionPart,
-  BlueskyAccountData,
-  BlueskyFileOptions,
-  BlueskyNotificationOptions,
   SubmissionRating,
 } from 'postybirb-commons';
 import UserAccountEntity from 'src/server//account/models/user-account.entity';
+import { PlaintextParser } from 'src/server/description-parsing/plaintext/plaintext.parser';
 import ImageManipulator from 'src/server/file-manipulation/manipulators/image.manipulator';
 import { CancellationToken } from 'src/server/submission/post/cancellation/cancellation-token';
 import {
@@ -23,32 +28,27 @@ import {
 import { PostData } from 'src/server/submission/post/interfaces/post-data.interface';
 import { ValidationParts } from 'src/server/submission/validator/interfaces/validation-parts.interface';
 import FileSize from 'src/server/utils/filesize.util';
+import FormContent from 'src/server/utils/form-content.util';
+import WaitUtil from 'src/server/utils/wait.util';
 import WebsiteValidator from 'src/server/utils/website-validator.util';
 import { LoginResponse } from '../interfaces/login-response.interface';
 import { ScalingOptions } from '../interfaces/scaling-options.interface';
 import { Website } from '../website.base';
-import { PlaintextParser } from 'src/server/description-parsing/plaintext/plaintext.parser';
-import fetch from 'node-fetch';
-import { ReplyRef } from '@atproto/api/dist/client/types/app/bsky/feed/post';
-import FormContent from 'src/server/utils/form-content.util';
-import { JobStatus } from '@atproto/api/dist/client/types/app/bsky/video/defs';
-import WaitUtil from 'src/server/utils/wait.util';
-import FormData from 'form-data';
 // HACK: The atproto library contains some kind of invalid typescript
 // declaration in @atproto/api, so we can't include directly from it. Rummaging
 // around in the dist files directly works though.
-import { AtUri } from '@atproto/syntax';
-import { BlobRef } from '@atproto/lexicon';
 import { BskyAgent } from '@atproto/api/dist/bsky-agent';
 import {
-  ComAtprotoLabelDefs,
   AppBskyEmbedImages,
   AppBskyEmbedVideo,
   AppBskyFeedThreadgate,
-  AppBskyVideoGetUploadLimits,
   AppBskyVideoGetJobStatus,
+  AppBskyVideoGetUploadLimits,
+  ComAtprotoLabelDefs,
 } from '@atproto/api/dist/client';
 import { RichText } from '@atproto/api/dist/rich-text/rich-text';
+import { BlobRef } from '@atproto/lexicon';
+import { AtUri } from '@atproto/syntax';
 
 function getRichTextLength(text: string): number {
   return new RichText({ text }).graphemeLength;
@@ -57,7 +57,7 @@ function getRichTextLength(text: string): number {
 @Injectable()
 export class Bluesky extends Website {
   readonly BASE_URL = '';
-  readonly acceptsFiles = ['png', 'jpeg', 'jpg', 'gif', 'mp4'];
+  readonly acceptsFiles = ['png', 'jpeg', 'jpg', 'gif', 'mp4', 'mov', 'webm'];
   readonly acceptsAdditionalFiles = true;
   readonly refreshInterval = 45 * 60000;
   readonly defaultDescriptionParser = PlaintextParser.parse;
@@ -111,7 +111,8 @@ export class Bluesky extends Website {
       // Yes they are this lame: https://github.com/bluesky-social/social-app/blob/main/src/lib/constants.ts
       maxHeight: 2000,
       maxWidth: 2000,
-      maxSize: FileSize.MBtoBytes(0.9),
+      maxSize: 1000000,
+      noTransparency: true, // Bsky doesn't support alpha transparency.
     };
   }
 
@@ -125,12 +126,33 @@ export class Bluesky extends Website {
   private async uploadEmbeds(
     agent: BskyAgent,
     files: PostFileRecord[],
-    fallbackAltText?: string,
   ): Promise<AppBskyEmbedImages.Main | AppBskyEmbedVideo.Main> {
-    if (this.countFileTypes(files).videos !== 0) {
+    // Bluesky supports either images or a video as an embed
+
+    if (this.countFileTypes(files).videos === 0) {
+      const uploadedImages: AppBskyEmbedImages.Image[] = [];
+      for (const file of files.slice(0, this.MAX_MEDIA)) {
+        const altText = file.altText || '';
+        const ref = await this.uploadImage(agent, file.file);
+
+        uploadedImages.push({
+          image: ref,
+          alt: altText,
+          aspectRatio: {
+            height: file.file.options.height,
+            width: file.file.options.width,
+          },
+        });
+      }
+
+      return {
+        images: uploadedImages,
+        $type: 'app.bsky.embed.images',
+      };
+    } else {
       for (const file of files) {
         if (file.type == FileSubmissionType.VIDEO) {
-          const altText = file.altText || fallbackAltText;
+          const altText = file.altText || '';
           this.checkVideoUploadLimits(agent);
           const ref = await this.uploadVideo(agent, file.file);
           return {
@@ -140,23 +162,6 @@ export class Bluesky extends Website {
           };
         }
       }
-    } else {
-      let uploadedImages: AppBskyEmbedImages.Image[] = [];
-      let fileCount = 0;
-      for (const file of files) {
-        const altText = file.altText || fallbackAltText;
-        const ref = await this.uploadImage(agent, file.file);
-        const image: AppBskyEmbedImages.Image = { image: ref, alt: altText };
-        uploadedImages.push(image);
-        fileCount++;
-        if (fileCount == this.MAX_MEDIA) {
-          break;
-        }
-      }
-      return {
-        images: uploadedImages,
-        $type: 'app.bsky.embed.images',
-      };
     }
   }
 
@@ -358,7 +363,7 @@ export class Bluesky extends Website {
     const reply = await this.getReplyRef(agent, data.options.replyToUrl);
 
     const files = [data.primary, ...data.additional];
-    const embeds = await this.uploadEmbeds(agent, files, data.options.altText);
+    const embeds = await this.uploadEmbeds(agent, files);
 
     /* TODO: @foxyoreos add graphic media option. */
     let labelsRecord: ComAtprotoLabelDefs.SelfLabels | undefined;
@@ -514,12 +519,6 @@ export class Bluesky extends Website {
         f => !f.ignoredAccounts!.includes(submissionPart.accountId),
       ),
     ];
-    if (!submissionPart.data.altText && files.some(f => !f.altText)) {
-      problems.push(
-        'Bluesky currently always requires alt text to be provided, ' +
-          'even if your settings say otherwise. This is a bug on their side.',
-      );
-    }
 
     this.validateRating(submissionPart, defaultPart, warnings);
 
