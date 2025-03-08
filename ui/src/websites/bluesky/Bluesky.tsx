@@ -1,4 +1,4 @@
-import { Checkbox, Form, Input, Select } from 'antd';
+import { Checkbox, Form, Input, Select, Radio } from 'antd';
 import {
   FileSubmission,
   BlueskyFileOptions,
@@ -52,17 +52,21 @@ BlueskyNotificationOptions
     const elements = super.renderLeftForm(data);
     elements.push(
       <Form.Item label="Label Rating">
-        <Select
-          {...GenericSelectProps}
+        <Radio.Group
           className="w-full"
+          buttonStyle="solid"
           value={data.label_rating}
           onChange={this.setValue.bind(this, 'label_rating')}
         >
-          <Select.Option value={''}>Suitable for all ages</Select.Option>
-          <Select.Option value={'sexual'}>Adult: Suggestive</Select.Option>
-          <Select.Option value={'nudity'}>Adult: Nudity</Select.Option>
-          <Select.Option value={'porn'}>Adult: Porn</Select.Option>
-        </Select>
+          <Radio.Button value={''}>Suitable for all ages</Radio.Button>
+          <Radio.Button value={'sexual'}>Adult: Suggestive</Radio.Button>
+          <Radio.Button value={'nudity'}>Adult: Nudity</Radio.Button>
+          <Radio.Button value={'porn'}>Adult: Porn</Radio.Button>
+          <Radio.Button value={'graphic-media'}>Graphic Media</Radio.Button>
+          <Radio.Button value={'sexual graphic-media'}>Suggestive and Graphic Media</Radio.Button>
+          <Radio.Button value={'nudity graphic-media'}>Nudity and Graphic Media</Radio.Button>
+          <Radio.Button value={'porn graphic-media'}>Porn and Graphic Media</Radio.Button>
+        </Radio.Group>
       </Form.Item>,
       <Form.Item label="Who can reply?">
         <Select
@@ -102,6 +106,10 @@ export class BlueskyFileSubmissionForm extends GenericFileSubmissionSection<Blue
           <Select.Option value={'sexual'}>Adult: Suggestive</Select.Option>
           <Select.Option value={'nudity'}>Adult: Nudity</Select.Option>
           <Select.Option value={'porn'}>Adult: Porn</Select.Option>
+          <Select.Option value={'graphic-media'}>Graphic Media</Select.Option>
+          <Select.Option value={'sexual graphic-media'}>Suggestive and Graphic Media</Select.Option>
+          <Select.Option value={'nudity graphic-media'}>Nudity and Graphic Media</Select.Option>
+          <Select.Option value={'porn graphic-media'}>Porn and Graphic Media</Select.Option>
         </Select>
       </Form.Item>,
       <Form.Item label="Who can reply?">

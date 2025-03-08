@@ -4,5 +4,8 @@ export interface TagGroup extends EntityIntf {
   alias: string;
   tags: Record<string /* Website Id */, string[]>;
   category?: string;
-  /* Add a "groups" field in the future that will auto-apply other groups (recursively) - and check for circular references */
+  groups?: string[]; /* Check for circular references when applied, don't worry about keeping the database clean. */
+  category?: string;
+  related?: string[]; /* For user-specified suggestions - if a tag group is here, it'll get suggested whenever this one is applied */
+  auto_hide?: boolean; /* Will hide this group from the group selector unless its parent is present. */
 }

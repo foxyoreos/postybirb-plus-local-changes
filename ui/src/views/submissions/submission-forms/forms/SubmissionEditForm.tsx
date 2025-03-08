@@ -28,6 +28,7 @@ import { submissionStore } from '../../../../stores/submission.store';
 import PostService from '../../../../services/post.service';
 import FallbackStoryInput from '../form-components/FallbackStoryInput';
 import TagInput, { TagGroupSelect } from '../form-components/TagInput';
+import MultiGroup from '../form-components/MultiGroup';
 import RemoteService from '../../../../services/remote.service';
 import SubmissionImageCropper from '../../submission-image-cropper/SubmissionImageCropper';
 import {
@@ -947,6 +948,26 @@ class SubmissionEditForm extends React.Component<Props, SubmissionEditFormState>
                 }}
                 />
              </Form.Item>
+
+             <MultiGroup
+               image={this.isFileSubmission(submission) ? RemoteService.getFileUrl(submission.primary.location) : ''}
+               acceptCallback={(groups)=>{
+                 const update = Object.values(this.state.parts).reduce((result: Array<SubmissionPart<any>>, part) => {
+                   return groups.reduce((part: SubmissionPart<any>, full) => {
+                     if (!full[part.website]) {
+                       return part;
+                     }
+
+                     part.data.tags.value = _.uniq([...part.data.tags.value, ...full[part.website]]);
+                     return part;
+                   }, part);
+
+                   result.push(part);
+                   return result;
+                 }, []);
+                 this.onUpdate(update);
+               }}
+             />
 
               <WebsiteSections
                 {...this.state}

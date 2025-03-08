@@ -3,6 +3,7 @@ import _ from 'lodash';
 import { inject, observer } from 'mobx-react';
 import { TagData } from 'postybirb-commons';
 import React from 'react';
+import { TagGroup } from 'postybirb-commons';
 import { TagGroupStore } from '../../../../stores/tag-group.store';
 
 const { Text } = Typography;
@@ -239,6 +240,52 @@ export class TagGroupSelect extends React.Component<TagGroupSelectProps, TagGrou
   };
 
   render() {
+    let groupLookup = this.props.tagGroupStore!.groups.reduce((result, group) => {
+      result[group._id] = group;
+      return result;
+    }, {});
+
+
+    const getParentGroups = (group: TagGroup, visited: string[]) => {
+      const clone = _.cloneDeep(group.tags);
+      if (!group.groups) {
+        return clone;
+      }
+
+      if (visited.indexOf(group._id) !== -1) { return {}; }
+      visited.push(group._id);
+      return group.groups.reduce((result, id: string) => {
+        let group = groupLookup[id];
+        let parents = getParentGroups(group, [...visited]);
+        return Object.keys(parents).reduce((result, key) => {
+          result[key] = result[key] || [];
+          result[key] = [...result[key], ...parents[key]];
+          return result;
+        }, clone);
+      }, clone);
+
+        //return [...result, ...getParentTags(group, [...visited], website)];
+            /* }, [...(group.tags[this.props.website as string] || []), ...group.tags['default']]); */
+    }
+
+    const getParentTags = (group: TagGroup, visited: string[], website: string) => {
+      if(!group.groups) {
+        return  [
+          ...(group.tags[website] || []),
+          ...group.tags['default']
+        ];
+      }
+
+      if (visited.indexOf(group._id) !== -1) { return []; }
+
+      visited.push(group._id);
+      return group.groups.reduce((result: string[], id: string) => {
+        let group = groupLookup[id];
+
+        return [...result, ...getParentTags(group, [...visited], website)];
+      }, [...(group.tags[this.props.website as string] || []), ...group.tags['default']]);
+    }
+
     if (this.props.informGroupedTags) {
       let map = this.props.tagGroupStore!.groups.reduce((result, group) => {
         if (!this.props.website || !group.tags[this.props.website]) {
@@ -298,7 +345,12 @@ export class TagGroupSelect extends React.Component<TagGroupSelectProps, TagGrou
                >
                  <a
                    onClick={e => {
-                     this.props.onSelect(tags, g.alias, g.tags);
+                     /* let tagMap = Object.keys(g.tags).reduce((result, key) => {
+                         result[key] = getParentTags(g, [], key);
+                         return result;
+                         }, {}); */
+                     let tagMap = getParentGroups(g, []);
+                     this.props.onSelect(tagMap[this.props.website as string] || [], g.alias, tagMap);
                      e.preventDefault();
                      e.stopPropagation();
                    }}

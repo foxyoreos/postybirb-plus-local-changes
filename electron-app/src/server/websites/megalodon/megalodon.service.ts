@@ -124,18 +124,22 @@ export abstract class Megalodon extends Website {
     const chunks = _.chunk(uploadedMedias, instanceSettings.maxImages);
     let status = `${data.options.useTitle && data.title ? `${data.title}\n` : ''}${
       data.description
-    }`.substring(0, instanceSettings.maxChars);
+    }`;
+    let statusChunks = status.split('\n------------\n').map(chunk => chunk.substring(0, instanceSettings.maxChars));
+
     let lastId = '';
     let source = '';
     const replyToId = this.getPostIdFromUrl(data.options.replyToUrl);
-
-    for (let i = 0; i < chunks.length; i++) {
+    for (let i = 0; i < Math.max(chunks.length, statusChunks.length); i++) {
       this.checkCancelled(cancellationToken);
       const statusOptions: any = {
         sensitive: isSensitive,
         visibility: data.options.visibility || 'public',
-        media_ids: chunks[i],
       };
+
+      if (i < chunks.length) {
+        statusOptions.media_ids = chunks[i];
+      }
 
       if (i !== 0) {
         statusOptions.in_reply_to_id = lastId;
@@ -158,7 +162,7 @@ export abstract class Megalodon extends Website {
           const ms = attempts * attempts * 1000;
           this.logger.log(`Waiting for ${ms}ms for media to process`);
           await WaitUtil.wait(ms);
-          const result = (await M.postStatus(status, statusOptions)).data as Entity.Status;
+          const result = (await M.postStatus(statusChunks[i] || '', statusOptions)).data as Entity.Status;
           if (!source) source = result.url;
           lastId = result.id;
           break;
@@ -243,23 +247,27 @@ export abstract class Megalodon extends Website {
       FormContent.getDescription(defaultPart.data.description, submissionPart.data.description),
     );
 
-    if (description.length > instanceSettings.maxChars) {
-      warnings.push(
-        `Max description length allowed is ${instanceSettings.maxChars} characters.`,
-      );
-    } else {
-      if (description.toLowerCase().indexOf('{tags}') > -1) {
-        this.validateInsertTags(
-          warnings,
-          this.formatTags(FormContent.getTags(defaultPart.data.tags, submissionPart.data.tags)),
-          description,
-          instanceSettings.maxChars,
+    const warning = FormContent.getSpoilerText(defaultPart.data, submissionPart.data);
+    const descriptionParts = description.split('\n------------\n');
+
+    descriptionParts.forEach((description) => {
+      if (description.length > instanceSettings.maxChars) {
+        warnings.push(
+          `Max description length allowed is ${instanceSettings.maxChars} characters.`,
         );
+      } else if (description.length + warning.length > instanceSettings.maxChars) {
+        warnings.push(`Max description length allowed is ${instanceSettings.maxChars} characters. With your content warning, your length is ${warning.length + description.length} characters.`);
       } else {
-        warnings.push(`You have not inserted the {tags} shortcut in your description; 
-          tags will not be inserted in your post`)
+        if (description.toLowerCase().indexOf('{tags}') > -1) {
+          this.validateInsertTags(
+            warnings,
+            this.formatTags(FormContent.getTags(defaultPart.data.tags, submissionPart.data.tags)),
+            description,
+            instanceSettings.maxChars,
+          );
+        }
       }
-    }
+    });
 
     const files = [
       submission.primary,
@@ -333,19 +341,21 @@ export abstract class Megalodon extends Website {
     const description = this.defaultDescriptionParser(
       FormContent.getDescription(defaultPart.data.description, submissionPart.data.description),
     );
-
-    if (description.length > instanceSettings.maxChars) {
-      warnings.push(
-        `Max description length allowed is ${instanceSettings.maxChars} characters.`,
-      );
-    } else {
-      this.validateInsertTags(
-        warnings,
-        this.formatTags(FormContent.getTags(defaultPart.data.tags, submissionPart.data.tags)),
-        description,
-        instanceSettings.maxChars,
-      );
-    }
+    const descriptionParts = description.split('\n------------\n');
+    descriptionParts.forEach((description) => {
+      if (description.length > instanceSettings.maxChars) {
+        warnings.push(
+          `Max description length allowed is ${instanceSettings.maxChars} characters.`,
+        );
+      } else {
+        this.validateInsertTags(
+          warnings,
+          this.formatTags(FormContent.getTags(defaultPart.data.tags, submissionPart.data.tags)),
+          description,
+          instanceSettings.maxChars,
+        );
+      }
+    });
 
     this.validateReplyToUrl(problems, submissionPart.data.replyToUrl);
 

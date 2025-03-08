@@ -44,6 +44,7 @@ import {
   AppBskyFeedThreadgate,
   AppBskyVideoGetJobStatus,
   AppBskyVideoGetUploadLimits,
+  AppBskyFeedPost,
   ComAtprotoLabelDefs,
 } from '@atproto/api/dist/client';
 import { RichText } from '@atproto/api/dist/rich-text/rich-text';
@@ -359,55 +360,120 @@ export class Bluesky extends Website {
     });
 
     let profile = await agent.getProfile({ actor: agent.session.did });
-
     const reply = await this.getReplyRef(agent, data.options.replyToUrl);
 
     const files = [data.primary, ...data.additional];
     const embeds = await this.uploadEmbeds(agent, files);
 
     /* TODO: @foxyoreos add graphic media option. */
+    /* DONE! UwU */
+    /* TODO: Okay. But now like, do it actually good. */
     let labelsRecord: ComAtprotoLabelDefs.SelfLabels | undefined;
     if (data.options.label_rating) {
       labelsRecord = {
-        values: [{ val: data.options.label_rating }],
+        values: data.options.label_rating
+          .split(' ')
+          .map(label => ({ val: label })),
         $type: 'com.atproto.label.defs#selfLabels',
       };
     }
 
-    const rt = new RichText({ text: data.description });
-    await rt.detectFacets(agent);
+    /* Split the description on newlines. This is SUPER DUPER HACKY See plaintext.parser.ts */
+    let descriptionSplits = data.description.split('\n------------\n');
+    const replyRoot = reply ? reply.root : null;
 
-    let postResult = await agent
-      .post({
-        text: rt.text,
-        facets: rt.facets,
-        embed: embeds,
-        labels: labelsRecord,
-        ...(reply ? { reply } : {}),
-      })
-      .catch(err => {
-        return Promise.reject(this.createPostResponse({ message: err }));
-      });
+    /* Do the *first* post and treat it as special :3 */
+    const head = await this.postPart(
+      agent,
+      descriptionSplits[0],
+      embeds,
+      labelsRecord,
+      reply
+    );
 
-    if (postResult && postResult.uri) {
-      // Generate a friendly URL
-      const handle = profile.data.handle;
-      const server = 'bsky.app'; // Can't use the agent sadly, but this might change later: agent.service.hostname;
-      const postId = postResult.uri.slice(postResult.uri.lastIndexOf('/') + 1);
-
-      let friendlyUrl = `https://${server}/profile/${handle}/post/${postId}`;
-
-      // After the post has been made, check to see if we need to set a ThreadGate; these are the options to control who can reply to your post, and need additional calls
-      if (data.options.threadgate) {
-        this.createThreadgate(agent, postResult.uri, data.options.threadgate);
-      }
-
-      return this.createPostResponse({
-        source: friendlyUrl,
-      });
-    } else {
+    if (!head || !head.uri) {
       return Promise.reject(this.createPostResponse({ message: 'Unknown error occurred' }));
     }
+
+    // Generate a friendly URL (we should actually use the parent for this? Or I guess fine, for now let's use the head)
+    const handle = profile.data.handle;
+    const server = 'bsky.app'; // Can't use the agent sadly, but this might change later: agent.service.hostname;
+    const postId = head.uri.slice(head.uri.lastIndexOf('/') + 1);
+
+    let friendlyUrl = `https://${server}/profile/${handle}/post/${postId}`;
+
+    // After the post has been made, check to see if we need to set a ThreadGate; these are the options to control who can reply to your post, and need additional calls
+    if (data.options.threadgate) {
+      this.createThreadgate(agent, head.uri, data.options.threadgate);
+    }
+
+    // Now we're ready to move on to the rest of the thread.
+    let parent = head;
+    for (let i = 1; i < descriptionSplits.length; i++) {
+      parent = await this.postPart(
+        agent,
+        descriptionSplits[i],
+        null,
+        null,
+        {
+          root: replyRoot || {
+            uri: head.uri,
+            cid: head.cid,
+          },
+          parent: {
+            uri: parent.uri,
+            cid: parent.cid,
+          }
+        });
+
+      if (!parent || !parent.uri) {
+        return Promise.reject(this.createPostResponse({ message: 'Unknown error occurred' }));
+      }
+    }
+
+    return this.createPostResponse({
+      source: friendlyUrl,
+    });
+
+    /* Now we need to repeat for each child */
+    /* But.... I guess we do want to return the last one? */
+
+    // const rt = new RichText({ text: descriptionSplits[0] });
+    // await rt.detectFacets(agent);
+
+    // let postResult = await agent
+    //   .post({
+    //     text: rt.text,
+    //     facets: rt.facets,
+    //     embed: embeds,
+    //     labels: labelsRecord,
+    //     ...(reply ? { reply } : {}),
+    //   })
+    //   .catch(err => {
+    //     return Promise.reject(this.createPostResponse({ message: err }));
+    //   });
+
+
+    // For the final instance, get the urls instead of doing anything fancy.
+    // if (postResult && postResult.uri) {
+    //   // Generate a friendly URL
+    //   const handle = profile.data.handle;
+    //   const server = 'bsky.app'; // Can't use the agent sadly, but this might change later: agent.service.hostname;
+    //   const postId = postResult.uri.slice(postResult.uri.lastIndexOf('/') + 1);
+
+    //   let friendlyUrl = `https://${server}/profile/${handle}/post/${postId}`;
+
+    //   // After the post has been made, check to see if we need to set a ThreadGate; these are the options to control who can reply to your post, and need additional calls
+    //   if (data.options.threadgate) {
+    //     this.createThreadgate(agent, postResult.uri, data.options.threadgate);
+    //   }
+
+    //   return this.createPostResponse({
+    //     source: friendlyUrl,
+    //   });
+    // } else {
+    //   return Promise.reject(this.createPostResponse({ message: 'Unknown error occurred' }));
+    // }
   }
 
   createThreadgate(agent: BskyAgent, postUri: string, fromPostThreadGate: string) {
@@ -441,6 +507,31 @@ export class Bluesky extends Website {
       .finally(() => {
         return;
       });
+  }
+
+  async postPart(
+    agent: BskyAgent,
+    text: string,
+    embeds?: AppBskyEmbedImages.Main | AppBskyEmbedVideo.Main,
+    labels?: ComAtprotoLabelDefs.SelfLabels | undefined,
+    reply?: ReplyRef
+  ): Promise<{ uri: string; cid: string; }> {
+    const rt = new RichText({ text: text });
+    await rt.detectFacets(agent);
+
+    let postResult = await agent
+        .post({
+          text: rt.text,
+          facets: rt.facets,
+          ...(embeds ? { embed : embeds } : {}),
+          ...(labels ? { labels } : {}),
+          ...(reply ? { reply } : {}),
+        })
+        .catch(err => {
+          return Promise.reject(this.createPostResponse({ message: err }));
+        });
+
+    return postResult;
   }
 
   async postNotificationSubmission(
@@ -633,26 +724,30 @@ export class Bluesky extends Website {
       FormContent.getDescription(defaultPart.data.description, submissionPart.data.description),
     );
 
-    const rt = new RichText({ text: description });
-    const agent = this.makeAgent();
-    rt.detectFacets(agent);
+    /* Split the description on newlines. This is SUPER DUPER HACKY See plaintext.parser.ts */
+    let descriptionParts = description.split('\n------------\n')
 
-    if (rt.graphemeLength > this.MAX_CHARS) {
-      problems.push(`Max description length allowed is ${this.MAX_CHARS} characters.`);
-    } else {
-      if (description.toLowerCase().indexOf('{tags}') > -1) {
-        this.validateInsertTags(
-          warnings,
-          this.formatTags(FormContent.getTags(defaultPart.data.tags, submissionPart.data.tags)),
-          description,
-          this.MAX_CHARS,
-          getRichTextLength,
-        );
+    const agent = this.makeAgent();
+    descriptionParts.forEach((description) => {
+      const rt = new RichText({ text: description });
+
+      /* TODO: foxyoreos - is this a bug? This wasn't using async, but it seems like it should. */
+      rt.detectFacets(agent);
+
+      if (rt.graphemeLength > this.MAX_CHARS) {
+        problems.push(`Max description length allowed is ${this.MAX_CHARS} characters. You can split your description using horizontal rules.`);
       } else {
-        warnings.push(`You have not inserted the {tags} shortcut in your description;
-          tags will not be inserted in your post`);
+        if (description.toLowerCase().indexOf('{tags}') > -1) {
+          this.validateInsertTags(
+            warnings,
+            this.formatTags(FormContent.getTags(defaultPart.data.tags, submissionPart.data.tags)),
+            description,
+            this.MAX_CHARS,
+            getRichTextLength,
+          );
+        }
       }
-    }
+    });
   }
 
   private validateReplyToUrl(problems: string[], url?: string): void {

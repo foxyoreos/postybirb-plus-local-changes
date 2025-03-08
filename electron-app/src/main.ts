@@ -30,7 +30,7 @@ global.DEBUG_MODE = !!process.argv.find((arg) => arg === '-d' || arg === '--deve
 global.SERVER_ONLY_MODE = !!process.argv.find((arg) => arg === '-s' || arg === '--server');
 
 const baseIndex = process.argv.findIndex((arg) => arg === '--directory') + 1;
-const defaultBase = path.join(app.getPath('documents'), 'PostyBirb');
+const defaultBase = path.join(app.getPath('documents'), 'PostyBirb-foxyoreos');
 global.BASE_DIRECTORY =
   baseIndex && process.argv[baseIndex] ? process.argv[baseIndex] : defaultBase;
 

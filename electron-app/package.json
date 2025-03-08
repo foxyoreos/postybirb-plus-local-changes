@@ -20,8 +20,8 @@
     "build:windows": "electron-builder -w",
     "build:rehash": "node hasher.js",
     "build:release": "export $(cat .env | xargs) && electron-builder -mwl -p always",
-    "release:windows": "electron-builder -w -p always",
-    "release:linux": "electron-builder -l -p always",
+    "release:windows": "electron-builder -w",
+    "release:linux": "electron-builder -l",
     "release:osx": "export $(cat .env | xargs) && electron-builder -m -p always",
     "clean": "rimraf release",
     "start": "run-s build start:electron",
@@ -130,13 +130,8 @@
     "yaml": "^2.5.0"
   },
   "build": {
-    "appId": "com.lemonynade.postybirb.plus",
-    "productName": "PostyBirb+",
-    "publish": {
-      "provider": "github",
-      "owner": "mvdicarlo",
-      "repo": "postybirb-plus"
-    },
+    "appId": "com.foxyoreos.postybirbwithlocalchanges",
+    "productName": "PostyBirbWithLocalChanges",
     "directories": {
       "buildResources": "packaging-resources",
       "output": "release"
@@ -154,9 +149,6 @@
       "artifactName": "${productName}-${version}.${ext}",
       "icon": "icons/icon_256x256x32.png",
       "category": "Network",
-      "publish": [
-        "github"
-      ],
       "target": [
         "AppImage",
         "snap"

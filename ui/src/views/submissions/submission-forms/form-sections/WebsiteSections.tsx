@@ -113,15 +113,17 @@ export default class WebsiteSections extends React.Component<WebsiteSectionsProp
 
       sections.push(
         <Form.Item className="form-section jumpable-section">
-          <Typography.Title style={{ marginBottom: '0' }} level={3}>
-            <span className="form-section-header nav-section-anchor" id={`#${website}`}>
-              {WebsiteRegistry.find(website)?.name}
+          <Typography.Title style={{ marginBottom: '0' }} level={3} >
+            <span onClick={this.toggleWebsite.bind(this, website)}>
+              <span className="form-section-header nav-section-anchor" id={`#${website}`}>
+                {WebsiteRegistry.find(website)?.name}
+              </span>
+              {this.state.expanded[website] ?
+               <Icon type="caret-down" key="hide" /> :
+               <Icon type="caret-right" key="expand" />
+              }
             </span>
-            {this.state.expanded[website] ?
-             <Icon type="caret-down" key="hide" onClick={this.toggleWebsite.bind(this, website)} /> :
-             <Icon type="caret-right" key="expand" onClick={this.toggleWebsite.bind(this, website)} />
-            }
-             </Typography.Title>
+          </Typography.Title>
           {this.state.expanded[website] &&
           <Tabs>
             {childrenSections.map(section => (

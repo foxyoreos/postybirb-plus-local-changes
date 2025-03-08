@@ -6,7 +6,7 @@ import { TagGroupStore } from '../../stores/tag-group.store';
 import { TagGroup } from 'postybirb-commons';
 import TagGroupService from '../../services/tag-group.service';
 import TagInput from '../submissions/submission-forms/form-components/TagInput';
-import { Input, Button, message, Popconfirm, Spin, Empty, Card, Icon } from 'antd';
+import { Input, Button, message, Popconfirm, Spin, Empty, Card, Icon, Select, Collapse } from 'antd';
 import { TagData } from 'postybirb-commons';
 import { WebsiteRegistry } from '../../websites/website-registry';
 import { LoginStatusStore } from '../../stores/login-status.store';
@@ -30,7 +30,7 @@ export default class TagGroups extends React.Component<Props> {
 
   createNewGroup() {
     TagGroupService.create({
-      alias: ` 0${_.uniqueId()}`,
+      alias: this.state.filter || ` 0${_.uniqueId()}`,
       tags: {
         "default": [],
       }
@@ -46,8 +46,18 @@ export default class TagGroups extends React.Component<Props> {
 
     const filteredGroups = groups.filter(g => g.alias.toLowerCase().includes(this.state.filter));
 
+    const categories = filteredGroups.reduce((result, group) => {
+      let category = group.category || 'default';
+      result[category] = result[category] || [];
+      result[category].push(group);
+      return result;
+    }, {});
+
     return (
       <div>
+        <Button className="mb-2" type="primary" onClick={this.createNewGroup.bind(this)}>
+          Add New Group
+        </Button>
         {groups.length ? (
           <div>
             <Input.Search
@@ -57,14 +67,16 @@ export default class TagGroups extends React.Component<Props> {
               value={this.state.filter}
               onChange={e => this.setState({ filter: e.target.value.toLowerCase() })}
             />
-            <Button className="mb-2" type="primary" onClick={this.createNewGroup}>
-              Add New Group
-            </Button>
-            {filteredGroups.map(g => (
-              <div className="tag-group-display">
-                <TagGroupInput key={g._id} accountMap={accounts} loginStatusStore={this.props.loginStatusStore} tagGroup={g} />
-              </div>
-            ))}
+            <Collapse>
+              {Object.keys(categories).map(category => (
+                <Collapse.Panel key={category} header={category}>
+                  {categories[category].map(g => (
+                    <div className="tag-group-display">
+                      <TagGroupInput key={g._id} accountMap={accounts} loginStatusStore={this.props.loginStatusStore} tagGroup={g} groups={groups}/>
+                    </div>
+                  ))}
+                </Collapse.Panel>))}
+            </Collapse>
           </div>
         ) : (
           <Empty description={<span>No tag groups</span>}>
@@ -87,6 +99,7 @@ interface TagGroupInputState {
 
 interface TagGroupProps {
   tagGroup: TagGroup;
+  groups: TagGroup[];
   loginStatusStore?: LoginStatusStore;
   accountMap: { [name: string]: boolean };
 }
@@ -132,9 +145,21 @@ class TagGroupInput extends React.Component<TagGroupProps, TagGroupInputState> {
     this.setState({ touched: !_.isEqual(copy, this.original), tagGroup: copy });
   };
 
+  handleTagGroupChange = (update: string[]) => {
+    const copy = _.cloneDeep(this.state.tagGroup);
+    copy.groups = [...update];
+    this.setState({ touched: !_.isEqual(copy, this.original), tagGroup: copy })
+  };
+
   handleNameChange = ({ target }) => {
     const copy = _.cloneDeep(this.state.tagGroup);
     copy.alias = target.value.trim();
+    this.setState({ touched: !_.isEqual(copy, this.original), tagGroup: copy });
+  };
+
+  handleCategoryChange = ({ target  }) => {
+    const copy = _.cloneDeep(this.state.tagGroup);
+    copy.category = target.value.trim();
     this.setState({ touched: !_.isEqual(copy, this.original), tagGroup: copy });
   };
 
@@ -173,6 +198,9 @@ class TagGroupInput extends React.Component<TagGroupProps, TagGroupInputState> {
 
   render() {
 
+    let filteredGroups = this.props.groups.filter((group) => group._id !== this.state.tagGroup._id);
+    let category = this.state.tagGroup.category || '';
+
     return (
       <div>
         <Spin spinning={this.state.saving} delay={500}>
@@ -203,6 +231,46 @@ class TagGroupInput extends React.Component<TagGroupProps, TagGroupInputState> {
             ]}
           >
 
+            {this.state.open && (
+              <>
+              <div className="flex mb-1">
+                <div className="flex-1">
+                  <strong>Category</strong>
+                </div>
+                <Input
+                  defaultValue={category}
+                  className="flex-1"
+                  required={false}
+                  onBlur={this.handleCategoryChange}
+                  placeholder="Category"/>
+              </div>
+              <div className="flex mb-1">
+                <div className="flex-1">
+                  <strong>Parent Groups</strong>
+                </div>
+                <Select
+                  mode="multiple"
+                  className="flex-1"
+                  tokenSeparators={[',']}
+                  onChange={this.handleTagGroupChange.bind(this)}
+                  value={this.state.tagGroup.groups}
+                  placeholder="Separate groups with ,"
+                  filterOption={(input, option) => ((option.props.label as string || '').toLowerCase().indexOf(input.toLowerCase()) >= 0)}
+                  allowClear
+                >
+                  {filteredGroups.map((group) => (
+                    <Select.Option
+                    key={group._id}
+                    value={group._id}
+                    label={group.alias}
+                    >
+                    <span>{group.alias}</span>
+                    </Select.Option>
+                  ))}
+                </Select>
+              </div>
+              </>
+            )}
             {this.state.open && this.websites
              .filter(website => website.supportsTags)
              .filter(website => {
