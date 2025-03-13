@@ -60,7 +60,7 @@ const icon: string = path.join(__dirname, '../build/assets/icons/minnowicon.png'
 
 // Enable windows 10 notifications
 if (util.isWindows()) {
-  app.setAppUserModelId('com.lemonynade.postybirb.plus');
+  app.setAppUserModelId('com.foxyoreos.local.postybirb.plus');
 }
 
 const loader = require('../loader/loader');
@@ -153,7 +153,7 @@ function createWindow() {
     minHeight: 500,
     autoHideMenuBar: true,
     icon,
-    title: 'PostyBirb',
+    title: 'PostyBirb (foxyoreos local build)',
     darkTheme: nativeTheme.shouldUseDarkColors,
     webPreferences: {
       devTools: true,
