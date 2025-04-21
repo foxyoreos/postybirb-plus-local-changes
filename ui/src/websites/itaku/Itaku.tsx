@@ -109,9 +109,20 @@ export class ItakuNotificationSubmissionForm extends GenericSubmissionSection<
         this.setState({ folders: data });
       }
     });
+
+    WebsiteService.getAccountGallery(
+      this.props.part.website,
+      this.props.part.accountId,
+      'live'
+    ).then(({ data  }) => {
+      if (data) {
+        console.log(data);
+      }
+    });
   }
 
   renderRightForm(data: ItakuNotificationOptions) {
+    const imageOptions = [];
     const elements = super.renderRightForm(data);
     elements.push(
       <Form.Item label="Folders">
@@ -139,6 +150,23 @@ export class ItakuNotificationSubmissionForm extends GenericSubmissionSection<
           <Select.Option value={'PROFILE_ONLY'}>Profile Only</Select.Option>
         </Select>
       </Form.Item>
+      /* <Form.Item label="Images">
+         <Select
+           {...GenericSelectProps}
+           className="w-full"
+           mode="multiple"
+           placeholder="Type an image name",
+           allowClear
+           onSearch={()=>{}}
+           onInputKeyDown={}
+           loading={this.state.imagesLoading}
+           optionLabelProp="label"
+           value={[]}
+           onChange={()=>{}}
+           >
+           {imageOptions}
+         </Select>
+          </Form.Item> */
     );
     return elements;
   }

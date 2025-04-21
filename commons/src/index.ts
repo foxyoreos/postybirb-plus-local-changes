@@ -50,6 +50,7 @@ export * from './interfaces/websites/discord/discord.notification.options.interf
 export * from './interfaces/websites/e621/e621.account.interface';
 export * from './interfaces/websites/e621/e621.file.options.interface';
 export * from './interfaces/websites/folder.interface';
+export * from './interfaces/websites/image.interface';
 export * from './interfaces/websites/fur-affinity/fur-affinity.file.options.interface';
 export * from './interfaces/websites/fur-affinity/fur-affinity.notification.options.interface';
 export * from './interfaces/websites/furry-network/furry-network.file.options.interface';

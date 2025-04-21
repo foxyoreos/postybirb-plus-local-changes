@@ -491,6 +491,13 @@ export class SubmissionService {
     this.orderSubmissions(movingSubmission.type); // somewhat doubles up, but ensures all UI get notified
   }
 
+  async changeCategory(id: string, category: string): Promise<void> {
+     const submission = await this.get(id);
+     submission.category = category;
+     this.repository.update(submission);
+     this.eventEmitter.emit(Events.SubmissionEvent.CATEGORY, id);
+  }
+
   async orderSubmissions(type: SubmissionType): Promise<void> {
     const submissions = await this.getAll(type);
     const ordered = submissions

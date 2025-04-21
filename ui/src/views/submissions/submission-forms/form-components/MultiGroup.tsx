@@ -101,6 +101,41 @@ export default class MultiGroup extends React.Component<Props, State> {
             return result;
         }, []);
 
+        const suggestions = groups.reduce((result: TagGroup[], group) => {
+           if (groupsApplied[group._id]) { /* If group is already applied */
+               return result;
+           }
+
+            if (this.state.hiding[group._id]) { /* If group is actively hidden */
+                return result;
+            }
+
+            if (!group.suggest) { /* only groups that have suggestions enabled. */
+                return result;
+            }
+
+            /* check if any are anabled */
+            const suggestWhen = (() => {
+                if (!group.suggestWhen || !group.suggestWhen.length) { return true; }
+                return group.suggestWhen.reduce((result, id) => {
+                    return result || groupsApplied[id];
+                }, false);
+            })();
+
+            const suggestWhenNot = (() => {
+                if (!group.suggestWhenNot || !group.suggestWhenNot.length) { return true; }
+                return group.suggestWhenNot.reduce((result, id) => {
+                    return result && !groupsApplied[id];
+                }, true);
+            })();
+
+            if (suggestWhen && suggestWhenNot) {
+                result.push(group);
+            }
+
+            return result;
+        }, []);
+
         const categories = groups.reduce((result, group) => {
             let category = group.category || 'default';
             result[category] = result[category] || [];
@@ -199,16 +234,31 @@ export default class MultiGroup extends React.Component<Props, State> {
                 </Select>
 
                 <div className="MultiGroup__Hiding">
-                  Hiding {hiddenList.map(item => (
-                      <>
-                        <a href="#" onClick={(evt) => {
-                            this.toggleGroupHide(item.id, false);
-                            evt.preventDefault();
-                            return false;
-                        }}>{item.name}</a>
+                    <h5>Hiding</h5>
+                    {hiddenList.length ? hiddenList.map(item => (
+                        <>
+                            <a href="#" onClick={(evt) => {
+                                this.toggleGroupHide(item.id, false);
+                                evt.preventDefault();
+                                return false;
+                            }}>{item.name}</a>
                         <span>, </span>
-                      </>
-                  ))}
+                        </>
+                    )) : 'None'}
+                </div>
+
+                <div className="MultiGroup__Suggestions">
+                    <h5>Tag Suggestions</h5>
+                    {suggestions.length ? suggestions.map((group) => (
+                        <>
+                            <a href="#" onClick={(evt) => {
+                                this.addGroup(getParentIds(group._id, []));
+                                evt.preventDefault();
+                                return false;
+                            }}>{group.alias}</a>
+                            <span>, </span>
+                        </>
+                    )) : 'None'}
                 </div>
             </Modal>
         </div>);

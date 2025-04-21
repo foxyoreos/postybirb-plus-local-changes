@@ -103,6 +103,11 @@ export class SubmissionController {
     return this.service.changeOrder(body.id, body.to, body.from);
   }
 
+  @Post('changeCategory')
+  async changeCategory(@Body() body: { id: string, category: string }) {
+    return this.service.changeCategory(body.id, body.category);
+  }
+
   @Patch('set/postAt/:id')
   async setPostAt(@Body() body: SubmissionScheduleModel, @Param('id') id: string) {
     return this.service.setPostAt(id, body.postAt);

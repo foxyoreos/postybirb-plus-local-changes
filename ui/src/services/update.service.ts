@@ -39,5 +39,6 @@ export default class UpdateService {
   }
 }
 
-UpdateService.getWebStatus();
-setInterval(() => UpdateService.getWebStatus(), 60000 * 60);
+/* Disable updateService (since this is a custom build) */
+//UpdateService.getWebStatus();
+//setInterval(() => UpdateService.getWebStatus(), 60000 * 60);

@@ -17,4 +17,9 @@ export class GenericWebsiteController {
   getFolders(@Param('id') id: string) {
     return this.service.getAccountInfo(id, GenericAccountProp.FOLDERS) || [];
   }
+
+  @Get('/gallery/:id/:search')
+  async getGallery(@Param('id') id: string, @Param('search') search: string) {
+    return this.service.gallerySearch(id, search);
+  }
 }

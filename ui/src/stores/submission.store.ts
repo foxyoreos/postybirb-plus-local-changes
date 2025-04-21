@@ -133,6 +133,11 @@ export class SubmissionStore {
 
     SubmissionService.changeOrder(id, to, from);
   }
+
+  @action
+  changeCategory(id: string, category: string) {
+    SubmissionService.changeCategory(id, category);
+  }
 }
 
 export const submissionStore = new SubmissionStore();

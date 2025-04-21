@@ -73,6 +73,10 @@ export class DescriptionParser {
           name: 'cw',
           content: FormContent.getSpoilerText(defaultPart.data, websitePart.data),
         },
+        {
+          name: 'parent',
+          content: websitePart.data.parentUrl || '',
+        }
       ]);
 
       // Parse all potential shortcut data

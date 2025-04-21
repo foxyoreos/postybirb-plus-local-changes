@@ -89,14 +89,23 @@ export default abstract class WebsiteFormSection<
             />
           ) : null}
           {showDescription ? (
-            <DescriptionInput
-              defaultValue={data.description}
-              onChange={this.setValue.bind(this, 'description')}
-              label="Description"
-              overwriteDescriptionValue={_.get(this.props.defaultData, 'description.value')}
-              anchorLength={_.get(this.props.descriptionOptions, 'options.anchorLength')}
-              lengthParser={_.get(this.props.descriptionOptions, 'options.lengthParser')}
-            />
+            <>
+              <DescriptionInput
+                defaultValue={data.description}
+                onChange={this.setValue.bind(this, 'description')}
+                label="Description"
+                overwriteDescriptionValue={_.get(this.props.defaultData, 'description.value')}
+                anchorLength={_.get(this.props.descriptionOptions, 'options.anchorLength')}
+                lengthParser={_.get(this.props.descriptionOptions, 'options.lengthParser')}
+              />
+              <Form.Item label="Parent URL">
+                <Input
+                  value={data.parentUrl}
+                  onChange={this.setValue.bind(this, 'parentUrl')}
+                />
+                <p>Will be filled with the URL of the parent submission. Reference with the {'{parent}'} shortcut.</p>
+              </Form.Item>
+            </>
           ) : null}
           {showRating ? (
             <Form.Item label="Rating">
@@ -109,6 +118,7 @@ export default abstract class WebsiteFormSection<
               </Radio.Group>
             </Form.Item>
           ) : null}
+
           <Form.Item>
             <div className="flex flex-wrap">
               {leftForm.length ? (

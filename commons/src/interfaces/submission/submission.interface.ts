@@ -10,4 +10,5 @@ export interface Submission extends EntityIntf {
   title: string;
   type: SubmissionType;
   order: number;
+  category?: string; /* Better organization. */
 }

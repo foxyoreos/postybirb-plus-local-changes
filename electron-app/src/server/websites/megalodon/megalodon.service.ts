@@ -410,6 +410,7 @@ export abstract class Megalodon extends Website {
   ): Promise<boolean> {
     const source = await getSource();
     if (source?.length) {
+      part.data.parentUrl = source;
       part.data.replyToUrl = source;
       return true;
     } else {

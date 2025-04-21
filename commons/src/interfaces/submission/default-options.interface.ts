@@ -10,6 +10,12 @@ export interface DefaultOptions {
   spoilerText?: string;
   parentId?: string;
   sources: string[];
+
+  /* Groups that are currently linked to the submission.
+   * Should auto-apply these before posting when filling in
+   * each group section. */
+  groups?: string[];
+  parentUrl?: string;
 }
 
 export interface DefaultFileOptions extends DefaultOptions {

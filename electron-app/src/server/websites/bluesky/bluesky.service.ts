@@ -799,6 +799,7 @@ export class Bluesky extends Website {
     const source = await getSource();
     if (source?.length) {
       part.data.replyToUrl = source;
+      part.data.parentUrl = source;
       return true;
     } else {
       return false;

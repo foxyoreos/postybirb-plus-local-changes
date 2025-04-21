@@ -13,6 +13,7 @@ import {
   SubmissionType,
   UsernameShortcut,
   WebsiteOptions,
+  Image,
 } from 'postybirb-commons';
 import UserAccountEntity from 'src/server//account/models/user-account.entity';
 import { HTMLFormatParser } from 'src/server/description-parsing/html/html.parser';
@@ -286,6 +287,17 @@ export abstract class Website {
     part: SubmissionPart<any>,
     getSource: () => Promise<string | undefined>,
   ): Promise<boolean> {
-    return false; // Override me, return true if something changed.
+    const source = await getSource();
+    if (source?.length) {
+      part.data.parentUrl = source;
+      return true;
+    }
+
+    return false; // Override me for more actions, return true if something changed.
+  }
+
+  /* Override me to search galleries for existing images. */
+  async gallerySearch(id: string, search: string): Promise<Image[]> {
+    return [];
   }
 }

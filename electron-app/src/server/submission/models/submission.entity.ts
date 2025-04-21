@@ -42,6 +42,10 @@ export default class SubmissionEntity extends Entity implements Submission {
   @IsNumber()
   order: number;
 
+  @IsString()
+  @IsOptional()
+  category: string;
+
   constructor(partial: Partial<SubmissionEntity>) {
     super(partial);
   }

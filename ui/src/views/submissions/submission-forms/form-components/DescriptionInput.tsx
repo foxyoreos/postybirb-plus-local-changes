@@ -191,6 +191,14 @@ export default class DescriptionInput extends React.Component<Props, State> {
                           Inserts the content warning
                         </span>
                       </li>
+                      <li>
+                        <code>{'{parent}'}</code>
+                        <span className="mx-1">-</span>
+                        <span>
+                          If Parent URL is filled in for a section, inserts the URL for that website section.
+                        </span>
+                      </li>
+
                     </ul>
                   </div>
                 }

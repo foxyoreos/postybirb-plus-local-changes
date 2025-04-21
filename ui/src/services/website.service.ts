@@ -1,6 +1,6 @@
 import axios from '../utils/http';
 import { UsernameShortcut } from 'postybirb-commons';
-import { Folder } from 'postybirb-commons';
+import { Folder, Image } from 'postybirb-commons';
 
 export default class WebsiteService {
   static usernameShortcuts: { [key: string]: UsernameShortcut[] } = {};
@@ -11,6 +11,10 @@ export default class WebsiteService {
 
   static getAccountFolders(website: string, id: string) {
     return axios.get<Folder[]>(`${website.toLowerCase()}/folders/${id}`);
+  }
+
+  static getAccountGallery(website: string, id: string, search: string) {
+    return axios.get<Image[]>(`${website.toLowerCase()}/gallery/${id}/${search}`)
   }
 
   static getUsernameShortcuts() {

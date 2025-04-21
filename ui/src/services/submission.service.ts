@@ -93,6 +93,10 @@ export default class SubmissionService {
     return axios.post('/submission/changeOrder', { id, to, from });
   }
 
+  static changeCategory(id: string, category: string) {
+    return axios.post('/submission/changeCategory', { id, category });
+  }
+
   static setPostAt(id: string, postAt: number | undefined) {
     return axios.patch(`/submission/set/postAt/${id}`, { postAt });
   }

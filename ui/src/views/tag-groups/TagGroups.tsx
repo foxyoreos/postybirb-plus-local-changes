@@ -6,7 +6,7 @@ import { TagGroupStore } from '../../stores/tag-group.store';
 import { TagGroup } from 'postybirb-commons';
 import TagGroupService from '../../services/tag-group.service';
 import TagInput from '../submissions/submission-forms/form-components/TagInput';
-import { Input, Button, message, Popconfirm, Spin, Empty, Card, Icon, Select, Collapse } from 'antd';
+import { Input, Button, message, Popconfirm, Spin, Empty, Card, Icon, Select, Collapse, Checkbox } from 'antd';
 import { TagData } from 'postybirb-commons';
 import { WebsiteRegistry } from '../../websites/website-registry';
 import { LoginStatusStore } from '../../stores/login-status.store';
@@ -151,6 +151,18 @@ class TagGroupInput extends React.Component<TagGroupProps, TagGroupInputState> {
     this.setState({ touched: !_.isEqual(copy, this.original), tagGroup: copy })
   };
 
+  handleSuggestWhenChange = (update: string[]) => {
+    const copy = _.cloneDeep(this.state.tagGroup);
+    copy.suggestWhen = [...update];
+    this.setState({ touched: !_.isEqual(copy, this.original), tagGroup: copy })
+  };
+
+  handleSuggestWhenNotChange = (update: string[]) => {
+    const copy = _.cloneDeep(this.state.tagGroup);
+    copy.suggestWhenNot = [...update];
+    this.setState({ touched: !_.isEqual(copy, this.original), tagGroup: copy })
+  };
+
   handleNameChange = ({ target }) => {
     const copy = _.cloneDeep(this.state.tagGroup);
     copy.alias = target.value.trim();
@@ -160,6 +172,12 @@ class TagGroupInput extends React.Component<TagGroupProps, TagGroupInputState> {
   handleCategoryChange = ({ target  }) => {
     const copy = _.cloneDeep(this.state.tagGroup);
     copy.category = target.value.trim();
+    this.setState({ touched: !_.isEqual(copy, this.original), tagGroup: copy });
+  };
+
+  handleSuggestChange = ({ target  }) => {
+    const copy = _.cloneDeep(this.state.tagGroup);
+    copy.suggest = target.checked;
     this.setState({ touched: !_.isEqual(copy, this.original), tagGroup: copy });
   };
 
@@ -208,7 +226,11 @@ class TagGroupInput extends React.Component<TagGroupProps, TagGroupInputState> {
             size="small"
             bodyStyle={{ overflow: 'auto', maxHeight: '200px' }}
             title={
-              <React.Fragment>
+              <div style={{ display: 'flex', placeItems: 'center' }}>
+                <Checkbox
+                  checked={!!this.state.tagGroup.suggest}
+                  onChange={this.handleSuggestChange.bind(this)}>
+                </Checkbox>
                 <Input
                   defaultValue={this.state.tagGroup.alias}
                   style={{width: 'calc(100% - 1.75em)', marginRight: '0.25em' }}
@@ -216,10 +238,10 @@ class TagGroupInput extends React.Component<TagGroupProps, TagGroupInputState> {
                   onBlur={this.handleNameChange}
                   placeholder="Name"
                 />
-                {this.state.open ?
-                 <Icon type="caret-down" key="hide" onClick={this.toggle} /> :
-                 <Icon type="caret-right" key="expand" onClick={this.toggle} />}
-              </React.Fragment>
+                               {this.state.open ?
+                                <Icon type="caret-down" key="hide" onClick={this.toggle} /> :
+                                <Icon type="caret-right" key="expand" onClick={this.toggle} />}
+              </div>
             }
             actions={[
               this.state.touched ?
@@ -233,17 +255,18 @@ class TagGroupInput extends React.Component<TagGroupProps, TagGroupInputState> {
 
             {this.state.open && (
               <>
-              <div className="flex mb-1">
-                <div className="flex-1">
-                  <strong>Category</strong>
-                </div>
-                <Input
-                  defaultValue={category}
-                  className="flex-1"
-                  required={false}
-                  onBlur={this.handleCategoryChange}
-                  placeholder="Category"/>
+                <div className="flex mb-1">
+                  <div className="flex-1">
+                    <strong>Category</strong>
               </div>
+              <Input
+                defaultValue={category}
+                className="flex-1"
+                required={false}
+                onBlur={this.handleCategoryChange}
+                placeholder="Category"/>
+              </div>
+
               <div className="flex mb-1">
                 <div className="flex-1">
                   <strong>Parent Groups</strong>
@@ -269,6 +292,68 @@ class TagGroupInput extends React.Component<TagGroupProps, TagGroupInputState> {
                   ))}
                 </Select>
               </div>
+
+              {/* Positive Suggestions */}
+              {this.state.tagGroup.suggest && (
+              <div className="flex mb-1">
+                <div className="flex-1">
+                  <strong>Suggest When ANY Applied</strong>
+                </div>
+                <Select
+                  mode="multiple"
+                  className="flex-1"
+                  tokenSeparators={[',']}
+                  onChange={this.handleSuggestWhenChange.bind(this)}
+                  value={this.state.tagGroup.suggestWhen}
+                  placeholder="Separate groups with ,"
+                  filterOption={(input, option) => ((option.props.label as string || '').toLowerCase().indexOf(input.toLowerCase()) >= 0)}
+                  allowClear
+                >
+                  {filteredGroups.map((group) => (
+                    <Select.Option
+                    key={group._id}
+                    value={group._id}
+                    label={group.alias}
+                    >
+                    <span>{group.alias}</span>
+                    </Select.Option>
+                  ))}
+                </Select>
+              </div>)}
+
+              {/* Negative Suggestions */}
+              {this.state.tagGroup.suggest && (
+                <div className="flex mb-1">
+                  <div className="flex-1">
+                    <strong>Suggest When ALL NOT Applied</strong>
+                  </div>
+                  <Select
+                    mode="multiple"
+                    className="flex-1"
+                    tokenSeparators={[',']}
+                    onChange={this.handleSuggestWhenNotChange.bind(this)}
+                    value={this.state.tagGroup.suggestWhenNot}
+                    placeholder="Separate groups with ,"
+                    filterOption={(input, option) => ((option.props.label as string || '').toLowerCase().indexOf(input.toLowerCase()) >= 0)}
+                    allowClear
+                  >
+                    {filteredGroups.map((group) => (
+                      <Select.Option
+                      key={group._id}
+                      value={group._id}
+                      label={group.alias}
+                      >
+                      <span>{group.alias}</span>
+                      </Select.Option>
+                    ))}
+                  </Select>
+                </div>)}
+
+                {this.state.tagGroup.suggest && (
+                  <div className="flex mb-1">
+                    <i>Will only be shown when both conditions are satisfied</i>
+                  </div>
+                )}
               </>
             )}
             {this.state.open && this.websites

@@ -9,6 +9,7 @@ export interface SubmissionPart<T extends DefaultOptions> extends EntityIntf {
   isDefault?: boolean;
   postedTo?: string;
   postStatus?: PostStatus;
+  parentUrl?: string;
 }
 
 export type PostStatus = 'SUCCESS' | 'FAILED' | 'UNPOSTED' | 'CANCELLED';

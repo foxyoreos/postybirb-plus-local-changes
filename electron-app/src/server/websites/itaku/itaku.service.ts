@@ -5,6 +5,7 @@ import {
   FileSubmission,
   FileSubmissionType,
   Folder,
+  Image,
   ItakuFileOptions,
   ItakuNotificationOptions,
   PostResponse,
@@ -82,6 +83,28 @@ export class Itaku extends Website {
     return { maxSize: FileSize.MBtoBytes(file.type === FileSubmissionType.IMAGE ? 10 : 500) };
   }
 
+  async gallerySearch(id: string, search: string): Promise<Image[]> {
+    const imageRes = await Http.get<{ results: { id: string; title: string; image_sm: string; }[] }>(
+      `${this.BASE_URL}/api/galleries/images/get_selected_images/?text=${search}&page=1&page_size=12`,
+      id,
+      {
+        requestOptions: { json: true },
+        headers: {
+          Authorization: `Token ${this.getAccountInfo(id, 'token')}`,
+        }
+      }
+    );
+
+    // console.log(imageRes);
+    const images: Image[] = imageRes.body.results.map(i => ({
+      value: i.id,
+      label: i.title,
+      preview: i.image_sm,
+    }));
+
+    return images;
+  }
+
   async retrieveFolders(id: string, ownerId: number): Promise<void> {
     const postFolderRes = await Http.get<{ id: string; num_images: number; title: string }[]>(
       `${this.BASE_URL}/api/post_folders/?owner=${ownerId}`,
@@ -128,9 +151,6 @@ export class Itaku extends Website {
         return 'NSFW';
     }
   }
-
-  /* TODO: foxyoreos - fetch image IDs and attach to posts. */
-  /* Async fetchImages () {} */
 
   async postFileSubmission(
     cancellationToken: CancellationToken,
