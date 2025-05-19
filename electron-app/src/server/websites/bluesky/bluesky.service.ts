@@ -50,6 +50,7 @@ import {
 import { RichText } from '@atproto/api/dist/rich-text/rich-text';
 import { BlobRef } from '@atproto/lexicon';
 import { AtUri } from '@atproto/syntax';
+import { UsernameParser } from 'src/server/description-parsing/miscellaneous/username.parser';
 
 function getRichTextLength(text: string): number {
   return new RichText({ text }).graphemeLength;
@@ -65,6 +66,12 @@ export class Bluesky extends Website {
   readonly MAX_CHARS = 300;
   readonly MAX_MEDIA = 4;
   readonly enableAdvertisement = false;
+  readonly usernameShortcuts = [
+    {
+      key: 'bsky',
+      url: 'https://bsky.app/profile/$1',
+    },
+  ];
 
   private makeAgent(): BskyAgent {
     // HACK: The atproto library makes a half-hearted attempt at supporting Node
@@ -117,6 +124,10 @@ export class Bluesky extends Website {
     };
   }
 
+  preparseDescription(text: string) {
+    return UsernameParser.replaceText(text, 'bsky', '@$1');
+  }
+
   formatTags(tags: string[]) {
     return this.parseTags(
       tags.map(tag => tag.replace(/[^a-z0-9]/gi, ' ')).map(tag => tag.split(' ').join('')),
@@ -129,8 +140,16 @@ export class Bluesky extends Website {
     files: PostFileRecord[],
   ): Promise<AppBskyEmbedImages.Main | AppBskyEmbedVideo.Main> {
     // Bluesky supports either images or a video as an embed
+    // GIFs must be treated as video on bsky
 
-    if (this.countFileTypes(files).videos === 0) {
+    const fileCount = this.countFileTypes(
+      files.map(f => ({
+        type: f.type,
+        mimetype: f.file.options.contentType,
+        name: f.file.options.filename,
+      })),
+    );
+    if (fileCount.videos === 0 && fileCount.gifs === 0) {
       const uploadedImages: AppBskyEmbedImages.Image[] = [];
       for (const file of files.slice(0, this.MAX_MEDIA)) {
         const altText = file.altText || '';
@@ -152,7 +171,8 @@ export class Bluesky extends Website {
       };
     } else {
       for (const file of files) {
-        if (file.type == FileSubmissionType.VIDEO) {
+        if (file.type == FileSubmissionType.VIDEO || FileSubmissionType.IMAGE) {
+          // Only IMAGE file type left is a GIF
           const altText = file.altText || '';
           this.checkVideoUploadLimits(agent);
           const ref = await this.uploadVideo(agent, file.file);
@@ -186,7 +206,6 @@ export class Bluesky extends Website {
   // path) and not doing the proper service authentication dance. So we instead
   // follow what the website does here, which is the way that actually works.
   // We also use the same inconsistent header capitalization as they do.
-
   private async checkVideoUploadLimits(agent: BskyAgent): Promise<void> {
     const token = await this.getAuthToken(
       agent,
@@ -615,9 +634,17 @@ export class Bluesky extends Website {
 
     this.validateDescription(problems, warnings, submissionPart, defaultPart);
 
-    const { images, videos, other } = this.countFileTypes(files);
-    if ((images !== 0 && videos !== 0) || videos > 1 || other !== 0) {
-      problems.push('Supports either a set of images or a single video');
+    const { images, videos, other, gifs } = this.countFileTypes(files);
+
+    // first condition also includes the case where there are gifs and videos
+    if (
+      (images !== 0 && videos !== 0) ||
+      (images > 1 && gifs !== 0) ||
+      videos > 1 ||
+      gifs > 1 ||
+      other !== 0
+    ) {
+      problems.push('Supports either a set of images, a single video, or a single GIF.');
     }
 
     files.forEach(file => {
@@ -627,7 +654,7 @@ export class Bluesky extends Website {
       }
 
       let maxMB: number = 1;
-      if (type !== FileSubmissionType.VIDEO && FileSize.MBtoBytes(maxMB) < size) {
+      if (type !== FileSubmissionType.VIDEO && FileSize.MBtoBytes(maxMB) < size && gifs === 0) {
         if (
           isAutoscaling &&
           type === FileSubmissionType.IMAGE &&
@@ -655,20 +682,27 @@ export class Bluesky extends Website {
       );
     }
 
+    if (gifs > 0) {
+      warnings.push('Bluesky automatically converts GIFs to videos.');
+    }
+
     this.validateReplyToUrl(problems, submissionPart.data.replyToUrl);
 
     return { problems, warnings };
   }
 
-  private countFileTypes(files: { type: FileSubmissionType }[]): {
+  private countFileTypes(files: Pick<FileRecord, 'type' | 'name' | 'mimetype'>[]): {
     images: number;
     videos: number;
     other: number;
+    gifs: number;
   } {
-    const counts = { images: 0, videos: 0, other: 0 };
+    const counts = { images: 0, videos: 0, other: 0, gifs: 0 };
     for (const file of files) {
       if (file.type === FileSubmissionType.VIDEO) {
         ++counts.videos;
+      } else if (file.name.endsWith('.gif') || file.mimetype.startsWith('image/gif')) {
+        ++counts.gifs;
       } else if (file.type === FileSubmissionType.IMAGE) {
         ++counts.images;
       } else {
