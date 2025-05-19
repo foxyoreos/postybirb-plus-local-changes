@@ -704,7 +704,8 @@ class SubmissionEditForm extends React.Component<Props, SubmissionEditFormState>
                       }
                       bodyStyle={{ padding: '0' }}
                     >
-                      <Input
+                      <Input.TextArea
+                        autosize={true}
                         placeholder="Alt text"
                         value={this.state.altTexts[submission.primary.location]}
                         onChange={e => this.handleAltTextChange(submission.primary, e.target.value)}
@@ -830,7 +831,8 @@ class SubmissionEditForm extends React.Component<Props, SubmissionEditFormState>
                                 placeholder="Ignored accounts"
                                 maxTagCount={0}
                               />
-                              <Input
+                              <Input.TextArea
+                                autosize={true}
                                 placeholder="Alt text"
                                 value={this.state.altTexts[f.location]}
                                 onChange={e => this.handleAltTextChange(f, e.target.value)}

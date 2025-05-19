@@ -728,14 +728,14 @@ export class Bluesky extends Website {
     let descriptionParts = description.split('\n------------\n')
 
     const agent = this.makeAgent();
-    descriptionParts.forEach((description) => {
+    descriptionParts.forEach((description, index) => {
       const rt = new RichText({ text: description });
 
       /* TODO: foxyoreos - is this a bug? This wasn't using async, but it seems like it should. */
       rt.detectFacets(agent);
 
       if (rt.graphemeLength > this.MAX_CHARS) {
-        problems.push(`Max description length allowed is ${this.MAX_CHARS} characters. You can split your description using horizontal rules.`);
+        problems.push(`Max description is ${this.MAX_CHARS} characters (part ${index+1} is ${rt.graphemeLength}) You can split your description using horizontal rules.`);
       } else {
         if (description.toLowerCase().indexOf('{tags}') > -1) {
           this.validateInsertTags(

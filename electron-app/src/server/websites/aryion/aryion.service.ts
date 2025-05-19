@@ -2,11 +2,13 @@ import { Injectable } from '@nestjs/common';
 import cheerio from 'cheerio';
 import {
   AryionFileOptions,
+  AryionNotificationOptions,
   DefaultOptions,
   FileRecord,
   FileSubmission,
   FileSubmissionType,
   Folder,
+  Submission,
   PostResponse,
   SubmissionPart,
 } from 'postybirb-commons';
@@ -17,6 +19,7 @@ import ImageManipulator from 'src/server/file-manipulation/manipulators/image.ma
 import Http from 'src/server/http/http.util';
 import { CancellationToken } from 'src/server/submission/post/cancellation/cancellation-token';
 import { FilePostData } from 'src/server/submission/post/interfaces/file-post-data.interface';
+import { PostData } from 'src/server/submission/post/interfaces/post-data.interface';
 import { ValidationParts } from 'src/server/submission/validator/interfaces/validation-parts.interface';
 import FileSize from 'src/server/utils/filesize.util';
 import WebsiteValidator from 'src/server/utils/website-validator.util';
@@ -110,6 +113,45 @@ export class Aryion extends Website {
     return UsernameParser.replaceText(text, 'ar', ':icon$1:');
   }
 
+  async postNotificationSubmission(
+    cancellationToken: CancellationToken,
+    data: PostData<Submission, AryionNotificationOptions>,
+  ): Promise<PostResponse> {
+
+    /* pretty simple, just format and send. */
+    const form: any = {
+      action: 'blog-post',
+      subject: data.title, /* I think this does actually need formatting. */
+      body: data.description,
+      view_perm: data.options.viewPermissions,
+      comment_perm: data.options.commentPermissions
+    };
+
+    this.checkCancelled(cancellationToken);
+    const post = await Http.post<string>(
+      `${this.BASE_URL}/g4/ajaxaction.php`,
+      data.part.accountId,
+      {
+        type: 'form',
+        data: form,
+      },
+    );
+
+    this.verifyResponse(post, 'Verify Post');
+    try {
+      /* Aryion's responses are extremely simple, we can just use a regex for this. They're unlikely to change. */
+      const format = /\<div class='notify'>Blog Posted<\/div><div class='payload'>([^<]*)<\/div>/;
+      const results = format.exec(post.body);
+
+      if (!results) {
+        return Promise.reject(this.createPostResponse({ additionalInfo: post.body }));
+      }
+
+      return this.createPostResponse({ source: `${this.BASE_URL}${results[1]}` });
+    } catch (err) {}
+    return Promise.reject(this.createPostResponse({ additionalInfo: post.body }));
+  }
+
   async postFileSubmission(
     cancellationToken: CancellationToken,
     data: FilePostData<AryionFileOptions>,
@@ -157,7 +199,7 @@ export class Aryion extends Website {
        * error/warning class for Postybirb is returned as a separate div from
        * the response JSON. You may want to do a more detailed check in the
        * future to fail on specific warnings/errors. */
-      const responses = post.body.split('\n');
+      const responses = post.body.trim().split('\n');
       if (responses.length > 1 && responses[0].indexOf('Warning:') === -1) {
         return Promise.reject(this.createPostResponse({ additionalInfo: post.body }));
       }

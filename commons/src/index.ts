@@ -40,6 +40,7 @@ export * from './interfaces/tag-converter/tag-converter.interface';
 export * from './interfaces/tag-group/tag-group.interface';
 export * from './interfaces/websites/artconomy/artconomy.file.options.interface';
 export * from './interfaces/websites/aryion/aryion.file.options.interface';
+export * from './interfaces/websites/aryion/aryion.notification.options.interface';
 export * from './interfaces/websites/custom/custom.account.interface';
 export * from './interfaces/websites/derpibooru/derpibooru.file.options.interface';
 export * from './interfaces/websites/furbooru/furbooru.file.options.interface';

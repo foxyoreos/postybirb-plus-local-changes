@@ -18,6 +18,7 @@ interface State {
     visible: boolean;
     search: string;
     hiding: { [key:string]: boolean; };
+    suggestions: TagGroup[];
 }
 
 @inject('tagGroupStore')
@@ -28,10 +29,12 @@ export default class MultiGroup extends React.Component<Props, State> {
         visible: false,
         search: '',
         hiding: {},
+        suggestions: [],
     };
 
     constructor(props: Props) {
         super(props);
+        this.state.suggestions = this.getSuggestions([]);
     }
 
     setSearch(value) {
@@ -44,15 +47,64 @@ export default class MultiGroup extends React.Component<Props, State> {
 
     addGroup(groups) {
         /* Also reset search (the callback doesn't get called when the search is reset) */
-        this.setState({ groups: _.uniq([...this.state.groups, ...groups]), search: '' });
+        const next = _.uniq([...this.state.groups, ...groups]);
+        const suggestions = this.getSuggestions(next);
+        this.setState({ groups: next, suggestions: suggestions, search: '' });
     }
 
     removeGroup(group) {
-        this.setState({ groups: _.without(this.state.groups, group) })
+        const next = _.without(this.state.groups, group);
+        const suggestions = this.getSuggestions(next);
+        this.setState({ groups: next, suggestions: suggestions });
     }
 
     toggleGroupHide(group, hide) {
         this.setState({ hiding: { ...this.state.hiding, [group]: hide } });
+    }
+
+    getSuggestions(currentGroups: string[]): TagGroup[] {
+        const groups = this.props.tagGroupStore!.groups;
+        const groupsApplied = currentGroups.reduce((result, g) => {
+            result[g] = true;
+            return result;
+        }, {});
+
+        const suggestions: TagGroup[] = groups.reduce((result: TagGroup[], group) => {
+           if (groupsApplied[group._id]) { /* If group is already applied */
+               return result;
+           }
+
+            if (this.state.hiding[group._id]) { /* If group is actively hidden */
+                return result;
+            }
+
+            if (!group.suggest) { /* only groups that have suggestions enabled. */
+                return result;
+            }
+
+            /* check if any are enabled */
+            const suggestWhen = (() => {
+                if (!group.suggestWhen || !group.suggestWhen.length) { return true; }
+                return group.suggestWhen.reduce((result, id) => {
+                    return result || groupsApplied[id];
+                }, false);
+            })();
+
+            const suggestWhenNot = (() => {
+                if (!group.suggestWhenNot || !group.suggestWhenNot.length) { return true; }
+                return group.suggestWhenNot.reduce((result, id) => {
+                    return result && !groupsApplied[id];
+                }, true);
+            })();
+
+            if (suggestWhen && suggestWhenNot) {
+                result.push(group);
+            }
+
+            return result;
+        }, []);
+
+        return suggestions;
     }
 
     render() {
@@ -96,41 +148,6 @@ export default class MultiGroup extends React.Component<Props, State> {
             }
             if (this.state.hiding[key]) {
                 result.push({ id: key, name: groupMap[key].alias });
-            }
-
-            return result;
-        }, []);
-
-        const suggestions = groups.reduce((result: TagGroup[], group) => {
-           if (groupsApplied[group._id]) { /* If group is already applied */
-               return result;
-           }
-
-            if (this.state.hiding[group._id]) { /* If group is actively hidden */
-                return result;
-            }
-
-            if (!group.suggest) { /* only groups that have suggestions enabled. */
-                return result;
-            }
-
-            /* check if any are anabled */
-            const suggestWhen = (() => {
-                if (!group.suggestWhen || !group.suggestWhen.length) { return true; }
-                return group.suggestWhen.reduce((result, id) => {
-                    return result || groupsApplied[id];
-                }, false);
-            })();
-
-            const suggestWhenNot = (() => {
-                if (!group.suggestWhenNot || !group.suggestWhenNot.length) { return true; }
-                return group.suggestWhenNot.reduce((result, id) => {
-                    return result && !groupsApplied[id];
-                }, true);
-            })();
-
-            if (suggestWhen && suggestWhenNot) {
-                result.push(group);
             }
 
             return result;
@@ -249,7 +266,7 @@ export default class MultiGroup extends React.Component<Props, State> {
 
                 <div className="MultiGroup__Suggestions">
                     <h5>Tag Suggestions</h5>
-                    {suggestions.length ? suggestions.map((group) => (
+                    {this.state.suggestions.length ? this.state.suggestions.map((group) => (
                         <>
                             <a href="#" onClick={(evt) => {
                                 this.addGroup(getParentIds(group._id, []));

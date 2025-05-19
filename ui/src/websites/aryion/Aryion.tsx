@@ -1,11 +1,18 @@
 import { Cascader, Checkbox, Form, Radio } from 'antd';
 import _ from 'lodash';
-import { AryionFileOptions, FileSubmission, Folder } from 'postybirb-commons';
+import {
+  AryionFileOptions,
+  FileSubmission,
+  Submission,
+  Folder,
+  AryionNotificationOptions,
+} from 'postybirb-commons';
 import React from 'react';
 import WebsiteService from '../../services/website.service';
 import { SubmissionSectionProps } from '../../views/submissions/submission-forms/interfaces/submission-section.interface';
 import { WebsiteSectionProps } from '../form-sections/website-form-section.interface';
 import GenericFileSubmissionSection from '../generic/GenericFileSubmissionSection';
+import GenericSubmissionSection from '../generic/GenericSubmissionSection';
 import { WebsiteImpl } from '../website.base';
 import { AryionTagSearchProvider } from './providers';
 
@@ -31,6 +38,15 @@ export class Aryion extends WebsiteImpl {
     />
   );
 
+  NotificationSubmissionForm = (props: WebsiteSectionProps<Submission, AryionNotificationOptions>) => (
+    <AryionNotificationSubmissionForm
+      key={props.part.accountId}
+      {...props}
+      tagOptions={{ show: false }}
+      ratingOptions={{ show: false }}
+    />
+  );
+
   supportsTextType(type: string): boolean {
     return ['text/plain', 'application/pdf', 'text/pdf'].includes(type);
   }
@@ -38,6 +54,39 @@ export class Aryion extends WebsiteImpl {
 
 interface AryionSubmissionState {
   folders: Folder[];
+}
+
+class AryionNotificationSubmissionForm extends GenericSubmissionSection<AryionNotificationOptions> {
+  renderLeftForm(data: AryionNotificationOptions) {
+    const elements = super.renderLeftForm(data);
+    elements.push(
+      <Form.Item label="View Permissions">
+        <Radio.Group
+          onChange={this.handleValueChange.bind(this, 'viewPermissions')}
+          value={data.viewPermissions}
+          buttonStyle="solid"
+        >
+          <Radio.Button value="ALL">Everyone</Radio.Button>
+          <Radio.Button value="USER">Registered Users</Radio.Button>
+          <Radio.Button value="SELF">Self Only</Radio.Button>
+        </Radio.Group>
+      </Form.Item>,
+      <Form.Item label="Comment Permissions">
+        <Radio.Group
+          onChange={this.handleValueChange.bind(this, 'commentPermissions')}
+          value={data.commentPermissions}
+          buttonStyle="solid"
+        >
+          <Radio.Button value="USER">Registered Users</Radio.Button>
+          <Radio.Button value="BLACK">All But Blocked</Radio.Button>
+          <Radio.Button value="WHITE">Friends Only</Radio.Button>
+          <Radio.Button value="SELF">Self Only</Radio.Button>
+          <Radio.Button value="NONE">Nobody</Radio.Button>
+        </Radio.Group>
+      </Form.Item>
+    );
+    return elements;
+  }
 }
 
 export class AryionFileSubmissionForm extends GenericFileSubmissionSection<AryionFileOptions> {

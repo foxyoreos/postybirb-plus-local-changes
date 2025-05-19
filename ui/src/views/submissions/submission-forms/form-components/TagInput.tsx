@@ -168,7 +168,6 @@ export default class TagInput extends React.Component<Props, State> {
           {this.props.hideTagGroup ? null : (
             <TagGroupSelect
               website={this.props.website}
-              informGroupedTags={(tags)=>{ this.groupedTags = tags; }}
               onSelect={tags => this.handleTagChange([...this.props.defaultValue.value, ...tags])}
             />
           )}
@@ -230,78 +229,109 @@ interface TagGroupSelectProps {
 
 interface TagGroupSelectState {
   filter: string;
+  visible: boolean;
 }
 
 @inject('tagGroupStore')
 @observer
 export class TagGroupSelect extends React.Component<TagGroupSelectProps, TagGroupSelectState> {
   state: TagGroupSelectState = {
+    visible: false,
     filter: ''
   };
 
-  render() {
+  constructor(props: TagGroupSelectProps) {
+    super(props);
+    this.getParentTags = this.getParentTags.bind(this);
+    this.getParentGroups = this.getParentGroups.bind(this);
+  }
+
+  /* I'm kind of desperate to improve performance, and the fact is that react triggering
+   * re-renders of a multi-hundred-item menu does actually waste time when we're returning
+   * DOM objects. So... let's fix that if we can and only render menu items when it's
+   * actually necessary. >w< */
+  handleVisibilityChange = (visible) => {
+    this.setState({ visible });
+  }
+
+  getParentGroups (group: TagGroup, visited: string[]) {
+     let groupLookup = this.props.tagGroupStore!.groups.reduce((result, group) => {
+      result[group._id] = group;
+      return result;
+    }, {});
+
+    const clone = _.cloneDeep(group.tags);
+    if (!group.groups) {
+      return clone;
+    }
+
+    if (visited.indexOf(group._id) !== -1) { return {}; }
+    visited.push(group._id);
+    return group.groups.reduce((result, id: string) => {
+      let group = groupLookup[id];
+      let parents = this.getParentGroups(group, [...visited]);
+      return Object.keys(parents).reduce((result, key) => {
+        result[key] = result[key] || [];
+        result[key] = [...result[key], ...parents[key]];
+        return result;
+      }, clone);
+    }, clone);
+
+    //return [...result, ...getParentTags(group, [...visited], website)];
+    /* }, [...(group.tags[this.props.website as string] || []), ...group.tags['default']]); */
+  }
+
+  getParentTags (group: TagGroup, visited: string[], website: string) {
     let groupLookup = this.props.tagGroupStore!.groups.reduce((result, group) => {
       result[group._id] = group;
       return result;
     }, {});
 
 
-    const getParentGroups = (group: TagGroup, visited: string[]) => {
-      const clone = _.cloneDeep(group.tags);
-      if (!group.groups) {
-        return clone;
+    if(!group.groups) {
+      return  [
+        ...(group.tags[website] || []),
+        ...group.tags['default']
+      ];
+    }
+
+    if (visited.indexOf(group._id) !== -1) { return []; }
+
+    visited.push(group._id);
+    return group.groups.reduce((result: string[], id: string) => {
+      let group = groupLookup[id];
+
+      return [...result, ...this.getParentTags(group, [...visited], website)];
+    }, [...(group.tags[this.props.website as string] || []), ...group.tags['default']]);
+  }
+
+  render() {
+    /* if (this.props.informGroupedTags) {
+     *   let map = this.props.tagGroupStore!.groups.reduce((result, group) => {
+     *     if (!this.props.website || !group.tags[this.props.website]) {
+     *       return result;
+     *     }
+
+     *     let tags = [...group.tags['default'], ...group.tags[this.props.website]];
+     *     tags.forEach((tag) => {
+     *       result[tag] = true;
+     *     });
+
+     *     return result;
+     *   }, {});
+
+     *   this.props.informGroupedTags(map);
+     * } */
+
+    const filteredGroups = (() => {
+      const groups = this.props.tagGroupStore!.groups;
+      if (!this.state.visible) { return groups; } /* skip computation if the menu isn't being shown. */
+      if (!this.state.filter) {
+        return groups;
       }
 
-      if (visited.indexOf(group._id) !== -1) { return {}; }
-      visited.push(group._id);
-      return group.groups.reduce((result, id: string) => {
-        let group = groupLookup[id];
-        let parents = getParentGroups(group, [...visited]);
-        return Object.keys(parents).reduce((result, key) => {
-          result[key] = result[key] || [];
-          result[key] = [...result[key], ...parents[key]];
-          return result;
-        }, clone);
-      }, clone);
-
-        //return [...result, ...getParentTags(group, [...visited], website)];
-            /* }, [...(group.tags[this.props.website as string] || []), ...group.tags['default']]); */
-    }
-
-    const getParentTags = (group: TagGroup, visited: string[], website: string) => {
-      if(!group.groups) {
-        return  [
-          ...(group.tags[website] || []),
-          ...group.tags['default']
-        ];
-      }
-
-      if (visited.indexOf(group._id) !== -1) { return []; }
-
-      visited.push(group._id);
-      return group.groups.reduce((result: string[], id: string) => {
-        let group = groupLookup[id];
-
-        return [...result, ...getParentTags(group, [...visited], website)];
-      }, [...(group.tags[this.props.website as string] || []), ...group.tags['default']]);
-    }
-
-    if (this.props.informGroupedTags) {
-      let map = this.props.tagGroupStore!.groups.reduce((result, group) => {
-        if (!this.props.website || !group.tags[this.props.website]) {
-          return result;
-        }
-
-        let tags = [...group.tags['default'], ...group.tags[this.props.website]];
-        tags.forEach((tag) => {
-          result[tag] = true;
-        });
-
-        return result;
-      }, {});
-
-      this.props.informGroupedTags(map);
-    }
+      return groups.filter(g => g.alias.toLowerCase().includes(this.state.filter));
+    })();
 
     const menu = (
       <Menu mode="inline" style={{ maxHeight: '33vh', overflow: 'auto', padding: '0' }}>
@@ -321,35 +351,32 @@ export class TagGroupSelect extends React.Component<TagGroupSelectProps, TagGrou
             onChange={e => this.setState({ filter: e.target.value.toLowerCase() })}
           />
         </div>
-        {this.props
-          .tagGroupStore!.groups.filter(g => g.alias.toLowerCase().includes(this.state.filter))
-         .map(g => {
-           let tags = g.tags['default'] || [];
-           if (this.props.website && g.tags[this.props.website]) {
-             tags = [...g.tags[this.props.website], ...g.tags['default']];
-           }
-
-           if (this.props.website && tags.length === 0) { return null; }
+        {this.state.visible && filteredGroups.map(g => {
+           /* let tags = g.tags['default'] || [];
+               if (this.props.website && g.tags[this.props.website]) {
+               tags = [...g.tags[this.props.website], ...g.tags['default']];
+               } */
 
            return (
              <Menu.Item key={g._id}>
-               <Tooltip
+             {/* <Tooltip
                  placement="right"
                  title={
-                   <div>
-                     {tags.map(tag => (
-                       <Tag>{tag}</Tag>
-                     ))}
-                   </div>
+                 <div>
+                 {tags.map(tag => (
+                 <Tag>{tag}</Tag>
+                 ))}
+                 </div>
                  }
-               >
+                 > */}
                  <a
                    onClick={e => {
                      /* let tagMap = Object.keys(g.tags).reduce((result, key) => {
                          result[key] = getParentTags(g, [], key);
                          return result;
                          }, {}); */
-                     let tagMap = getParentGroups(g, []);
+                     /* We don't need to compute the actual tags attached to this until the group is clicked on. */
+                     let tagMap = this.getParentGroups(g, []);
                      this.props.onSelect(tagMap[this.props.website as string] || [], g.alias, tagMap);
                      e.preventDefault();
                      e.stopPropagation();
@@ -357,7 +384,7 @@ export class TagGroupSelect extends React.Component<TagGroupSelectProps, TagGrou
                  >
                    {g.alias}
                  </a>
-               </Tooltip>
+             {/* </Tooltip> */}
              </Menu.Item>
            );
          })}
@@ -366,7 +393,10 @@ export class TagGroupSelect extends React.Component<TagGroupSelectProps, TagGrou
 
     return (
       <div className="mr-2">
-        <Dropdown overlay={menu} trigger={['click']}>
+        <Dropdown overlay={menu}
+                  trigger={['click']}
+                  onVisibleChange={this.handleVisibilityChange}
+                  visible={this.state.visible}>
           <a className="ant-dropdown-link text-link" href="#">
             Apply Tag Group <Icon type="down" />
           </a>
