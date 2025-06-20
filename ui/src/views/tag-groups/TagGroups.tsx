@@ -44,7 +44,7 @@ export default class TagGroups extends React.Component<Props> {
       return result;
     }, {});
 
-    const filteredGroups = groups.filter(g => g.alias.toLowerCase().includes(this.state.filter));
+    const filteredGroups = groups.filter(g => g.alias.toLowerCase().includes(this.state.filter.toLowerCase()));
 
     const categories = filteredGroups.reduce((result, group) => {
       let category = group.category || 'default';
@@ -65,7 +65,7 @@ export default class TagGroups extends React.Component<Props> {
               allowClear
               placeholder="Search"
               value={this.state.filter}
-              onChange={e => this.setState({ filter: e.target.value.toLowerCase() })}
+              onChange={e => this.setState({ filter: e.target.value })}
             />
             <Collapse>
               {Object.keys(categories).map(category => (
@@ -278,7 +278,10 @@ class TagGroupInput extends React.Component<TagGroupProps, TagGroupInputState> {
                   onChange={this.handleTagGroupChange.bind(this)}
                   value={this.state.tagGroup.groups}
                   placeholder="Separate groups with ,"
-                  filterOption={(input, option) => ((option.props.label as string || '').toLowerCase().indexOf(input.toLowerCase()) >= 0)}
+                  filterOption={(input, option) => {
+                    const label = option.props.label as string || '';
+                    return label.toLowerCase().indexOf(input.toLowerCase()) >= 0;
+                  }}
                   allowClear
                 >
                   {filteredGroups.map((group) => (

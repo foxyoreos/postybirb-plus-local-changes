@@ -11,9 +11,17 @@ interface Props {
   descriptionTemplateStore?: DescriptionTemplateStore;
 }
 
+interface DescriptionTemplatesState {
+  filter: string;
+}
+
 @inject('descriptionTemplateStore')
 @observer
 export default class DescriptionTemplates extends React.Component<Props> {
+  state: DescriptionTemplatesState = {
+    filter: ''
+  };
+
   createNewDescriptionTemplate() {
     DescriptionTemplateService.create({
       title: 'New Description Template',
@@ -24,6 +32,18 @@ export default class DescriptionTemplates extends React.Component<Props> {
 
   render() {
     const templates = this.props.descriptionTemplateStore!.templates;
+    const filteredTemplates = templates.filter(t => {
+      if (t.title.toLowerCase().includes(this.state.filter.toLowerCase())) {
+        return true;
+      }
+
+      if ((t.description || '').toLowerCase().includes(this.state.filter.toLowerCase())) {
+        return true;
+      }
+
+      return false;
+    });
+
     return (
       <div>
         {templates.length ? (
@@ -31,7 +51,14 @@ export default class DescriptionTemplates extends React.Component<Props> {
             <Button className="mb-2" type="primary" onClick={this.createNewDescriptionTemplate}>
               Add New Description Template
             </Button>
-            {templates.map((t: DescriptionTemplate) => (
+            <Input.Search
+              autoFocus
+              allowClear
+              placeholder="Search"
+              value={this.state.filter}
+              onChange={e => this.setState({ filter: e.target.value })}
+            />
+            {filteredTemplates.map((t: DescriptionTemplate) => (
               <div className="mb-2">
                 <DescriptionTemplateEditor key={t._id} template={t} />
               </div>
@@ -57,13 +84,15 @@ interface EditorState {
   template: Partial<DescriptionTemplate>;
   touched: boolean;
   saving: boolean;
+  open: boolean;
 }
 
 class DescriptionTemplateEditor extends React.Component<EditorProps, EditorState> {
   state: EditorState = {
     template: {},
     touched: false,
-    saving: false
+    saving: false,
+    open: false,
   };
 
   private original!: DescriptionTemplate;
@@ -104,6 +133,10 @@ class DescriptionTemplateEditor extends React.Component<EditorProps, EditorState
     this.setState({ touched: !_.isEqual(copy, this.original), template: copy });
   };
 
+  toggle = () => {
+    this.setState((state) => ({ open: !state.open }));
+  }
+
   handleContentChange = ({ value }) => {
     const copy = _.cloneDeep(this.state.template);
     copy.content = value;
@@ -118,32 +151,45 @@ class DescriptionTemplateEditor extends React.Component<EditorProps, EditorState
             <Card
               size="small"
               title={
-                <Input
-                  defaultValue={this.state.template.title}
-                  required={true}
-                  onBlur={this.handleStringChange.bind(this, 'title')}
-                  placeholder="Name"
-                />
+
+                <div style={{ display: 'flex', placeItems: 'center' }}>
+                  <Input
+                    defaultValue={this.state.template.title}
+                    required={true}
+                    onBlur={this.handleStringChange.bind(this, 'title')}
+                    placeholder="Name"
+                  ></Input>
+                                 {this.state.open ?
+                                  <Icon type="caret-down" key="hide" onClick={this.toggle} /> :
+                                  <Icon type="caret-right" key="expand" onClick={this.toggle} />}
+                </div>
+
               }
               actions={[
-                <Icon type="save" key="save" onClick={this.onSave} />,
+                this.state.touched ?
+                (<Icon type="save" key="save" onClick={this.onSave} />) :
+                (<Icon type="check" key="save" onClick={this.onSave} />),
                 <Popconfirm title="Are you sure?" onConfirm={this.onDelete}>
                   <Icon type="delete" key="delete" />
                 </Popconfirm>
               ]}
             >
-              <Form.Item label="Info">
-                <Input
-                  className="w-full"
-                  defaultValue={this.state.template.description}
-                  onBlur={this.handleStringChange.bind(this, 'description')}
+              {this.state.open && (
+                <>
+                  <Form.Item label="Info">
+                    <Input
+                      className="w-full"
+                      defaultValue={this.state.template.description}
+                      onBlur={this.handleStringChange.bind(this, 'description')}
+                    />
+                  </Form.Item>
+                <DescriptionInput
+                  defaultValue={{ overwriteDefault: false, value: this.state.template.content! }}
+                  onChange={this.handleContentChange}
+                  hideOverwrite={true}
                 />
-              </Form.Item>
-              <DescriptionInput
-                defaultValue={{ overwriteDefault: false, value: this.state.template.content! }}
-                onChange={this.handleContentChange}
-                hideOverwrite={true}
-              />
+                </>
+              )}
             </Card>
           </Form>
         </Spin>
