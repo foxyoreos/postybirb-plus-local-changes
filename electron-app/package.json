@@ -1,6 +1,6 @@
 {
   "name": "postybirb-plus-foxyoreos-build",
-  "version": "3.1.60",
+  "version": "3.1.69",
   "description": "(ClientServer) PostyBirb is an application that helps artists post art and other multimedia to multiple websites more quickly.",
   "main": "dist/main.js",
   "author": "Michael DiCarlo",
@@ -88,6 +88,7 @@
     "nedb": "^1.8.0",
     "node-fetch": "^2.6.12",
     "node-forge": "^0.10.0",
+    "node-html-parser": "^7.0.1",
     "parse5": "^5.1.1",
     "postybirb-commons": "file:../commons",
     "reflect-metadata": "^0.1.13",
