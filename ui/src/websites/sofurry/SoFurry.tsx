@@ -22,7 +22,7 @@ export class SoFurry extends WebsiteImpl {
   name: string = 'SoFurry';
   supportsAdditionalFiles: boolean = false;
   supportsTags: boolean = true;
-  loginUrl: string = 'https://www.sofurry.com/user/login';
+  loginUrl: string = 'https://www.sofurry.com/login';
 
   FileSubmissionForm = (props: WebsiteSectionProps<FileSubmission, SoFurryFileOptions>) => (
     <SoFurryFileSubmissionForm

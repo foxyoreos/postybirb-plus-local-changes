@@ -29,7 +29,12 @@ export class Bluesky extends WebsiteImpl {
     <BlueskyFileSubmissionForm
       key={props.part.accountId}
       {...props}
-      tagOptions={{ show: true }}
+      tagOptions={{
+        show: true,
+        options: {
+            maxTags: 6,
+        }
+      }}
       hideThumbnailOptions={true}
     />
   );
@@ -40,7 +45,12 @@ export class Bluesky extends WebsiteImpl {
     <BlueskyNotificationSubmissionForm
       key={props.part.accountId}
       {...props}
-      tagOptions={{ show: true }}
+      tagOptions={{
+        show: true,
+        options: {
+            maxTags: 6,
+        }
+      }}
     />
   );
 }
@@ -52,21 +62,21 @@ BlueskyNotificationOptions
     const elements = super.renderLeftForm(data);
     elements.push(
       <Form.Item label="Label Rating">
-        <Radio.Group
+        <Select
+          {...GenericSelectProps}
           className="w-full"
-          buttonStyle="solid"
           value={data.label_rating}
           onChange={this.setValue.bind(this, 'label_rating')}
         >
-          <Radio.Button value={''}>Suitable for all ages</Radio.Button>
-          <Radio.Button value={'sexual'}>Adult: Suggestive</Radio.Button>
-          <Radio.Button value={'nudity'}>Adult: Nudity</Radio.Button>
-          <Radio.Button value={'porn'}>Adult: Porn</Radio.Button>
-          <Radio.Button value={'graphic-media'}>Graphic Media</Radio.Button>
-          <Radio.Button value={'sexual graphic-media'}>Suggestive and Graphic Media</Radio.Button>
-          <Radio.Button value={'nudity graphic-media'}>Nudity and Graphic Media</Radio.Button>
-          <Radio.Button value={'porn graphic-media'}>Porn and Graphic Media</Radio.Button>
-        </Radio.Group>
+          <Select.Option value={''}>Suitable for all ages</Select.Option>
+          <Select.Option value={'sexual'}>Adult: Suggestive</Select.Option>
+          <Select.Option value={'nudity'}>Adult: Nudity</Select.Option>
+          <Select.Option value={'porn'}>Adult: Porn</Select.Option>
+          <Select.Option value={'graphic-media'}>Graphic Media</Select.Option>
+          <Select.Option value={'sexual graphic-media'}>Suggestive and Graphic Media</Select.Option>
+          <Select.Option value={'nudity graphic-media'}>Nudity and Graphic Media</Select.Option>
+          <Select.Option value={'porn graphic-media'}>Porn and Graphic Media</Select.Option>
+        </Select>
       </Form.Item>,
       <Form.Item label="Who can reply?">
         <Select

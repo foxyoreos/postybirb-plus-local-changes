@@ -14,11 +14,22 @@ export default abstract class WebsiteFormSection<
   T extends Submission,
   K extends DefaultOptions
 > extends React.Component<WebsiteSectionProps<T, K>, any> {
+  constructor (props) {
+    super(props);
+    this.setTagValue = this.setTagValue.bind(this);
+    this.setDescriptionValue = this.setDescriptionValue.bind(this);
+  }
+
   protected setValue(fieldName: keyof K, value: any) {
     const part: SubmissionPart<K> = _.cloneDeep(this.props.part);
     _.set(part.data, fieldName, value);
     this.props.onUpdate(part);
   }
+
+  /* Performance methods to avoid unnecessary re-renders */
+  setTagValue(value) { this.setValue('tags', value); }
+  setDescriptionValue(value) { this.setValue('description', value); }
+
 
   handleValueChange(fieldName: keyof K, event: { target: { value?: any } }) {
     this.setValue(fieldName, event.target.value);
@@ -80,7 +91,7 @@ export default abstract class WebsiteFormSection<
           {showTags ? (
             <TagInput
               website={this.props.website}
-              onChange={this.setValue.bind(this, 'tags')}
+              onChange={this.setTagValue}
               defaultValue={data.tags}
               defaultTags={this.props.defaultData!.tags}
               label="Tags"
@@ -92,19 +103,12 @@ export default abstract class WebsiteFormSection<
             <>
               <DescriptionInput
                 defaultValue={data.description}
-                onChange={this.setValue.bind(this, 'description')}
+                onChange={this.setDescriptionValue}
                 label="Description"
                 overwriteDescriptionValue={_.get(this.props.defaultData, 'description.value')}
                 anchorLength={_.get(this.props.descriptionOptions, 'options.anchorLength')}
                 lengthParser={_.get(this.props.descriptionOptions, 'options.lengthParser')}
               />
-              <Form.Item label="Parent URL">
-                <Input
-                  value={data.parentUrl}
-                  onChange={this.setValue.bind(this, 'parentUrl')}
-                />
-                <p>Will be filled with the URL of the parent submission. Reference with the {'{parent}'} shortcut.</p>
-              </Form.Item>
             </>
           ) : null}
           {showRating ? (

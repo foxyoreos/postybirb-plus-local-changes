@@ -367,7 +367,7 @@ class TagGroupInput extends React.Component<TagGroupProps, TagGroupInputState> {
              // @ts-ignore
              .concat([{ supportsTags: true, name: "Default", internalName: "default" }])
              .map(website => (
-               <div className="flex mb-1">
+               <div className="flex mb-1 TagGroup__site">
                  <div className="flex-1">
                    <strong>{website.name}</strong>
                  </div>

@@ -16,6 +16,7 @@
     "baseUrl": "./",
     "incremental": true,
     "rootDirs": ["./src", "./test"],
+    "lib": ["ES2021.String"],
     "paths": {
       "postybirb-commons": ["../../commons/src/index.ts"]
     }

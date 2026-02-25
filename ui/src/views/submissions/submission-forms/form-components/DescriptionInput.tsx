@@ -2,6 +2,7 @@ import React from 'react';
 import sanitize from 'sanitize-html';
 import { inject, observer } from 'mobx-react';
 import { Editor } from '@tinymce/tinymce-react';
+import _ from 'lodash';
 import { Form, Switch, Button, Popover, Typography } from 'antd';
 import { DescriptionTemplateStore } from '../../../../stores/description-template.store';
 import { DescriptionData } from 'postybirb-commons';
@@ -44,6 +45,7 @@ export default class DescriptionInput extends React.Component<Props, State> {
     paste_data_images: false,
     browser_spellcheck: true, // should be supported in electron 8
     entity_encoding: 'raw',
+    contextmenu: false,
     paste_retain_style_properties: 'color',
     invalid_elements: 'audio,video',
     image_uploadtab: false,
@@ -98,6 +100,10 @@ export default class DescriptionInput extends React.Component<Props, State> {
       this.data.value = this.props.overwriteDescriptionValue;
     }
     this.update();
+  };
+
+  areEqual(prevProps, nextProps) {
+    return _.isEqual(prevProps, nextProps);
   };
 
   handleDescriptionChange = description => {

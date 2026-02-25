@@ -62,12 +62,30 @@ export default class TagInput extends React.Component<Props, State> {
       ...this.options,
       ...props.tagOptions
     };
+
+    this.handleTagChange = this.handleTagChange.bind(this);
+    this.handleTagGroupChange = this.handleTagGroupChange.bind(this);
+  }
+
+  shouldComponentUpdate(nextProps, nextState) {
+    const prevCompareProps = _.omit(this.props, 'defaultValue');
+    const nextCompareProps = _.omit(nextProps, 'defaultValue');
+    const same = _.isEqual(prevCompareProps, nextCompareProps)
+              && _.isEqual(this.state, nextState);
+
+    const tagsSame = this.props.defaultValue.extendDefault === nextProps.defaultValue.extendDefault &&
+                        _.isEqual(this.props.defaultValue.value, nextProps.defaultValue.value);
+    return !same || !tagsSame;
   }
 
   changeExtendDefault = (checked: boolean) => {
     this.data.extendDefault = checked;
     this.update();
   };
+
+  handleTagGroupChange = (tags: string[]) => {
+    this.handleTagChange([...this.props.defaultValue.value, ...tags]);
+  }
 
   handleTagChange = (tags: string[]) => {
     this.data.value = this.filterTags(tags);
@@ -114,7 +132,7 @@ export default class TagInput extends React.Component<Props, State> {
   }, 200);
 
   render() {
-    this.data = this.props.defaultValue;
+    this.data = _.cloneDeep(this.props.defaultValue);
     const tagSwitch = this.props.hideExtend ? null : (
       <div>
         <span className="mr-2">
@@ -168,7 +186,7 @@ export default class TagInput extends React.Component<Props, State> {
           {this.props.hideTagGroup ? null : (
             <TagGroupSelect
               website={this.props.website}
-              onSelect={tags => this.handleTagChange([...this.props.defaultValue.value, ...tags])}
+              onSelect={this.handleTagGroupChange}
             />
           )}
           {this.props.hideExtend ? null : (

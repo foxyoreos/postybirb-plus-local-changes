@@ -1,3 +1,15 @@
 .tag-group-display + .tag-group-display {
   margin-top: 0.5rem;
 }
+
+.TagGroup__site:nth-child(even) {
+    background-color: rgba(200,200,200, 0.1);
+}
+
+.TagGroup__site {
+    align-items: center;
+}
+
+.TagGroup__site .ant-form-item-children .flex {
+    align-items: center;
+}

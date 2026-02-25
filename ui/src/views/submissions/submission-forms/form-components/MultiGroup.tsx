@@ -9,8 +9,9 @@ const { OptGroup, Option } = Select;
 
 interface Props {
     image: string;
-    acceptCallback: (map: any) => void;
+    acceptCallback: (groups: string[], map: any) => void;
     tagGroupStore?: TagGroupStore;
+    defaultGroups?: string[];
 }
 
 interface State {
@@ -22,6 +23,29 @@ interface State {
     filteredGroups: TagGroup[];
     filteredCategories: string[];
 }
+/*
+ * interface DropdownProps {
+ *   tagGroupStore?: TagGroupStore;
+ *   search?: string;
+ * }
+ *
+ * interface DropdownState {}
+ *
+ * @inject('tagGroupStore')
+ * @observer
+ * class MultiGroupDropdown extends React.Component<DropdownProps, DropdownState> {
+ *   state: DropdownState = {}
+ *   constructor(props: DropdownProps) {
+ *     super(DropdownProps);
+ *   }
+ *
+ *   render () {
+ *     const groups = this.props.tagGroupStore!.groups;
+ *     const searching = !!this.props.search;
+ *
+ *
+ *   }
+ * } */
 
 @inject('tagGroupStore')
 @observer
@@ -38,11 +62,26 @@ export default class MultiGroup extends React.Component<Props, State> {
 
     constructor(props: Props) {
         super(props);
-        this.state.suggestions = this.getSuggestions([]);
+        this.state.suggestions = this.getSuggestions(props.defaultGroups || []);
+        this.state.groups = props.defaultGroups || [];
     }
+
+    /* TODO: I want a way to create a new group directly from this modal without messing with anything else.
+     * To do that, I don't want to open a new modal...
+     * So.. then what do I want..
+     * Probably a sidebar? (you have a sidebar, it's just kinda slow - and requires closing the dialog. It's just.. you know, extra clicks..)
+     * Import and export for groups might be better.
+     */
 
     setSearch(value) {
         const groups = this.props.tagGroupStore!.groups;
+
+        /* The problem with this is aggressive DOM modification...
+        / when we swap from the flat list to the search, the app
+        / always freezes up. This is because it's recomputing the
+        / dom. Importantly, this also happens on moving to the new
+        / one... meaning it's not actually enough to remove things
+        / it's still kind of iterating over the same list.. */
         let filteredGroups: TagGroup[] = [];
         if (value) {
             filteredGroups = groups.filter((group) => {
@@ -215,10 +254,9 @@ export default class MultiGroup extends React.Component<Props, State> {
                     title="Apply Groups"
                     visible={this.state.visible}
                     className="MultiGroup"
-                    width={725}
                     onOk={
                     ()=>{
-                        this.props.acceptCallback(this.state.groups.map(g => {
+                        this.props.acceptCallback(this.state.groups, this.state.groups.map(g => {
                             return groupMap[g].tags;
                             //return getParentGroups(groupMap[g], []);
                         }));
@@ -228,57 +266,71 @@ export default class MultiGroup extends React.Component<Props, State> {
                 >
                     {/* Should add a form here */}
 
-                  <div className="MultiGroup__Preview">
-                      <img className="MultiGroup__Preview__Image"
-                           src={this.props.image} />
-                  </div>
+                  <div className="MultiGroup__Left">
+                      <div className="MultiGroup__Preview">
+                          <img className="MultiGroup__Preview__Image"
+                               src={this.props.image} />
+                      </div>
 
-                  <Select
-                      mode="multiple"
-                      className="flex-1"
-                      style={{ width: '100%', minWidth: '20em', }}
-                      tokenSeparators={[',']}
-                      onSelect={(group)=>this.addGroup(getParentIds(group, []))}
-                      onDeselect={(group=>this.removeGroup(group))}
-                      value={this.state.groups}
-                      filterOption={false}
-                      placeholder="Separate groups with ,"
-                      onSearch={this.setSearch.bind(this)}
-                      onBlur={this.setSearch.bind(this, '')}
-                      allowClear
-                  >
-                      {(() => {
-                          /* filterOption={(input, option) => ((option.props.label as string || '').toLowerCase().indexOf(input.toLowerCase()) >= 0)} */
-                          if (this.state.search) {
-                              return this.state.filteredGroups.map(group => (
-                                  <Option
-                                      key={group._id}
-                                      value={group._id}
-                                      label={group.alias}
-                                  >
-                                      <span onClick={(evt)=>{
-                                          this.toggleGroupHide(group._id, true);
-                                          evt.preventDefault();
-                                          evt.stopPropagation();
-                                          return false;
-                                      }}>(-)</span>
-                                      <span>{group.alias}</span>
-                                  </Option>
-                              ));
-                          }
+                      <Select
+                          mode="multiple"
+                          className="flex-1"
+                          style={{ width: '100%', minWidth: '20em', }}
+                          tokenSeparators={[',']}
+                          onSelect={(group)=>this.addGroup(getParentIds(group, []))}
+                          onDeselect={(group=>this.removeGroup(group))}
+                          value={this.state.groups}
+                          filterOption={false}
+                          placeholder="Separate groups with ,"
+                          onSearch={this.setSearch.bind(this)}
+                          onBlur={this.setSearch.bind(this, '')}
+                          allowClear
+                      >
+                          {(() => {
+                            const groupArray = (() => {
+                              if (!this.state.search) {
+                                return groups;
+                              }
 
-                          const categories = groups.reduce((result, group) => {
+                              if (this.state.filteredGroups.length > 80) {
+                                return this.state.filteredGroups.slice(0, 80);
+                              }
+
+                              return this.state.filteredGroups;
+                            })();
+
+                            const categories = groupArray.reduce((result, group) => {
                               let category = group.category || 'default';
                               result[category] = result[category] || [];
                               result[category].push(group);
                               return result;
-                          }, {});
+                            }, {});
 
-                          return Object.keys(categories).map(category => (
+                            return Object.keys(categories).map(category => (
                               <OptGroup key={category} label={category}>
-                                  {categories[category].map((group) => (
+                                {categories[category].map((group) => (
+                                  <Option
+                                    className={shouldShow(group) ? "" : "GroupSelect__option--hidden"}
+                                    key={group._id}
+                                    value={group._id}
+                                    label={group.alias}
+                                  >
+                                    <span onClick={(evt)=>{
+                                      this.toggleGroupHide(group._id, true);
+                                      evt.preventDefault();
+                                      evt.stopPropagation();
+                                      return false;
+                                    }}>(-)</span>
+                                    <span>{group.alias}</span>
+                                  </Option>
+                                ))}
+                              </OptGroup>));
+
+
+                              /* filterOption={(input, option) => ((option.props.label as string || '').toLowerCase().indexOf(input.toLowerCase()) >= 0)} */
+                              if (this.state.search) {
+                                  return this.state.filteredGroups.map(group => (
                                       <Option
-                                          className={shouldShow(group) ? "" : "GroupSelect__option--hidden"}
                                           key={group._id}
                                           value={group._id}
                                           label={group.alias}
@@ -291,43 +343,71 @@ export default class MultiGroup extends React.Component<Props, State> {
                                           }}>(-)</span>
                                           <span>{group.alias}</span>
                                       </Option>
-                                  ))}
-                              </OptGroup>
-                      ))})()}
-                  </Select>
+                                  ));
+                              }
 
-                  <div className="MultiGroup__Hiding">
-                      <h5>Hiding</h5>
-                      {hiddenList.length ? hiddenList.map(item => (
-                          <>
-                            <a href="#" onClick={(evt) => {
-                                this.toggleGroupHide(item.id, false);
-                                evt.preventDefault();
-                                return false;
-                            }}>{item.name}</a>
-                        <span>, </span>
-                        </>
-                    )) : 'None'}
-                </div>
+                              const categories_ = groups.reduce((result, group) => {
+                                  let category = group.category || 'default';
+                                  result[category] = result[category] || [];
+                                  result[category].push(group);
+                                  return result;
+                              }, {});
 
-                <div className="MultiGroup__Suggestions">
-                    <h5>Tag Suggestions</h5>
-                    {this.state.suggestions.length ? this.state.suggestions.map((group) => (
-                        <>
-                            <span onClick={(evt)=>{
-                                this.toggleGroupHide(group._id, true);
-                                evt.preventDefault();
-                                evt.stopPropagation();
-                                return false;
-                            }}>(-)</span>
-                            <a href="#" onClick={(evt) => {
-                                this.addGroup(getParentIds(group._id, []));
-                                evt.preventDefault();
-                                return false;
-                            }}>{group.alias}</a>
+                              return Object.keys(categories).map(category => (
+                                  <OptGroup key={category} label={category}>
+                                      {categories[category].map((group) => (
+                                          <Option
+                                              className={shouldShow(group) ? "" : "GroupSelect__option--hidden"}
+                                              key={group._id}
+                                              value={group._id}
+                                              label={group.alias}
+                                          >
+                                              <span onClick={(evt)=>{
+                                                  this.toggleGroupHide(group._id, true);
+                                                  evt.preventDefault();
+                                                  evt.stopPropagation();
+                                                  return false;
+                                              }}>(-)</span>
+                                              <span>{group.alias}</span>
+                                          </Option>
+                                      ))}
+                                  </OptGroup>
+                          ))})()}
+                      </Select>
+
+                      <details className="MultiGroup__Hiding">
+                          <summary><b>Hiding (click to expand)</b></summary>
+                          {hiddenList.length ? hiddenList.map(item => (
+                              <>
+                                <a href="#" onClick={(evt) => {
+                                    this.toggleGroupHide(item.id, false);
+                                    evt.preventDefault();
+                                    return false;
+                                }}>{item.name}</a>
                             <span>, </span>
-                        </>
-                    )) : 'None'}
+                            </>
+                        )) : 'None'}
+                    </details>
+
+                    <details className="MultiGroup__Suggestions">
+                        <summary><b>Tag Suggestions (click to expand)</b></summary>
+                        {this.state.suggestions.length ? this.state.suggestions.map((group) => (
+                            <>
+                                <span onClick={(evt)=>{
+                                    this.toggleGroupHide(group._id, true);
+                                    evt.preventDefault();
+                                    evt.stopPropagation();
+                                    return false;
+                                }}>(-)</span>
+                                <a href="#" onClick={(evt) => {
+                                    this.addGroup(getParentIds(group._id, []));
+                                    evt.preventDefault();
+                                    return false;
+                                }}>{group.alias}</a>
+                                <span>, </span>
+                            </>
+                        )) : 'None'}
+                    </details>
                 </div>
             </Modal>
         </div>);

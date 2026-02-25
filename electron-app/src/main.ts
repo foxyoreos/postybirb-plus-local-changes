@@ -48,6 +48,8 @@ require('./app/auth-generator');
 require('./app/settings');
 require('electron-context-menu')({
   showInspectElement: false,
+  showSearchWithGoogle: false,
+  showCorrectAutomatically: false,
 });
 
 let nest: any;

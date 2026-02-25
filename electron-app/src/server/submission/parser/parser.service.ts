@@ -104,6 +104,7 @@ export class ParserService {
     websitePart: SubmissionPartEntity<DefaultOptions>,
   ): Promise<string[]> {
     let tags = _.uniq<string>(FormContent.getTags(defaultPart.data.tags, websitePart.data.tags));
+    /* TODO: pull in groups (have them only stored in the default part? - easiest to start) */
     if (tags.length) {
       const conversionMap = {};
       (await this.tagConverter.getTagConvertersForWebsite(website.constructor.name)).forEach(

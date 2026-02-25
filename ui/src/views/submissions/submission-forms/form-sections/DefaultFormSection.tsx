@@ -39,6 +39,15 @@ export default class DefaultFormSection extends React.Component<
     }
   })();
 
+  constructor (props: SubmissionSectionProps<Submission, DefaultOptions>) {
+    super(props);
+    this.handleDescriptionChange = this.handleDescriptionChange.bind(this);
+    this.handleParentIdChange = this.handleParentIdChange.bind(this);
+    this.handleTagChange = this.handleTagChange.bind(this);
+    this.getParentSubmissionOptions = _.memoize(
+      this.getParentSubmissionOptions.bind(this)); /* bear in mind if we add another argument, this needs a resolver */
+  }
+
   handleChange(fieldName: string, { target }) {
     const part: SubmissionPart<DefaultOptions> = _.cloneDeep(this.props.part);
     part.data[fieldName] = target.value;
@@ -82,9 +91,18 @@ export default class DefaultFormSection extends React.Component<
     }
   }
 
+  getParentSubmissionOptions(parents: { id: string, type: SubmissionType, title: string }[]) {
+    return parents.map(({ id, type, title }) => (
+      <Select.Option value={id}>
+      <Icon type={this.getSubmissionTypeIcon(type)}></Icon> {title}
+      </Select.Option>
+    ));
+  }
+
   render() {
     const { data } = this.props.part;
-    const settings = this.props.settingsStore!.settings
+    const settings = this.props.settingsStore!.settings;
+
     return (
       <div>
         <SectionProblems problems={this.props.problems} />
@@ -107,7 +125,7 @@ export default class DefaultFormSection extends React.Component<
           <Input value={data.spoilerText} onChange={this.handleChange.bind(this, 'spoilerText')} />
         </Form.Item>
         <TagInput
-          onChange={this.handleTagChange.bind(this)}
+          onChange={this.handleTagChange}
           defaultValue={data.tags}
           label="Tags"
           searchProvider={
@@ -117,26 +135,10 @@ export default class DefaultFormSection extends React.Component<
         />
         <DescriptionInput
           defaultValue={data.description}
-          onChange={this.handleDescriptionChange.bind(this)}
+          onChange={this.handleDescriptionChange}
           label="Description"
           hideOverwrite={true}
         />
-        <Form.Item label="Parent Submission">
-          <Select
-            {...GenericSelectProps}
-            className="w-full"
-            value={this.getParentId()}
-            onSelect={this.handleParentIdChange.bind(this)}
-          >
-            <Select.Option value="">None</Select.Option>
-            {(this.props.parentOptions || []).map(({ id, type, title }) => (
-              <Select.Option value={id}>
-                <Icon type={this.getSubmissionTypeIcon(type)}></Icon> {title}
-              </Select.Option>
-            ))}
-          </Select>
-          <p>Supported by {DefaultFormSection.websitesSupportingParentIds}.</p>
-        </Form.Item>
       </div>
     );
   }

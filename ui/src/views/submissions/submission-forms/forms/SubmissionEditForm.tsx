@@ -139,6 +139,9 @@ class SubmissionEditForm extends React.Component<Props, SubmissionEditFormState>
       .catch(() => {
         props.history.push('/home');
       });
+
+    this.handleGroupUpdate = this.handleGroupUpdate.bind(this);
+
   }
 
   componentDidMount() {
@@ -146,13 +149,24 @@ class SubmissionEditForm extends React.Component<Props, SubmissionEditFormState>
   }
 
   onUpdate = (updatePart: SubmissionPart<any> | Array<SubmissionPart<any>>) => {
-    const parts = _.cloneDeep(this.state.parts); /* This is fast... */
+    //const parts = _.cloneDeep(this.state.parts); /* This is fast... BUT will trigger a ton of updates for every section. */
+    const parts = (() => { /* Clone the object, but don't rebuild every single sub-object, see if we can dodge at least *some* updates */
+      const parts = this.state.parts;
+      const next = {};
+      Object.keys(parts).forEach((key) => {
+        next[key] = parts[key];
+      });
+      return next;
+    })();
+
     const updateParts = Array.isArray(updatePart) ? updatePart : [updatePart]; /* Now we go over the updates. */
-    updateParts.forEach(p => (parts[p.accountId] = p)); /* we set a new part onto the update part? */
+    updateParts.forEach(part => {
+      parts[part.accountId] = part;
+    }); /* we set a new part onto the update part? */
 
-
-    const isTouched: boolean = !_.isEqual(parts, this.original.parts);
-    this.setState({ parts, touched: isTouched });
+    const isTouched: boolean = !_.isEqual(parts, this.original.parts); /* We are running this shit anyway. */
+    /* As long as we're doing it.. can we be a bit more selective about what parts we update? */
+    this.setState({ parts, touched: isTouched }); /* This will still trigger a full re-render, but hopefully it'll be easier to deal with. */
     this.checkProblems();
   };
 
@@ -274,6 +288,16 @@ class SubmissionEditForm extends React.Component<Props, SubmissionEditFormState>
         if (!p.data.rating) {
           p.data.rating = existing.data.rating;
         }
+
+        /* Merge tags */
+        if (p.data.tags && existing.data.tags) {
+          p.data.tags.value = _.uniq([...p.data.tags.value, ...existing.data.tags.value]);
+        }
+
+        if (Array.isArray(p.data.folders) && Array.isArray(existing.data.folders)) {
+          p.data.folders = _.uniq([...p.data.folders, ...existing.data.folders]);
+        }
+
       } else {
         p._id = `${this.id}-${p.accountId}`;
       }
@@ -282,6 +306,8 @@ class SubmissionEditForm extends React.Component<Props, SubmissionEditFormState>
     this.onUpdate(parts);
   }
 
+  /* TODO PERF: Cache this if possible, TreeSelect is adding more to the render than you might
+  otherwise expect, and I think it might be a weirdly expensive part of the render loop. */
   getWebsiteTreeData(filter?: (status: UserAccountDto) => boolean): TreeNode[] {
     const websiteData: { [key: string]: TreeNode } = {};
     let filtered = this.props.loginStatusStore!.statuses.filter(status => {
@@ -324,6 +350,7 @@ class SubmissionEditForm extends React.Component<Props, SubmissionEditFormState>
   }
 
   getSelectedWebsiteIds(): string[] {
+    /* TODO: cache this. */
     return Object.values(this.state.parts)
       .filter(p => !p.isDefault)
       .filter(p => !this.state.removedParts.includes(p.accountId))
@@ -581,6 +608,29 @@ class SubmissionEditForm extends React.Component<Props, SubmissionEditFormState>
     this.setState({ altTexts, touched: true });
   }
 
+  handleGroupUpdate(groupList: string[], groups) {
+    /* TODO: also write to the "group" field */
+    const update = Object.values(this.state.parts).reduce((result: Array<SubmissionPart<any>>, part) => {
+      if (part.isDefault) {
+        part.data.groups = [...groupList];
+      }
+
+      return groups.reduce((part: SubmissionPart<any>, full) => {
+        if (!full[part.website]) {
+          return part;
+        }
+
+        part.data = _.cloneDeep(part.data); /* force updates to trigger since we're shallow-checking */
+        part.data.tags.value = _.uniq([...part.data.tags.value, ...full[part.website]]);
+        return part;
+      }, part);
+
+      result.push(part);
+      return result;
+    }, []);
+    this.onUpdate(update);
+  }
+
   componentWillUnmount() {
     uiStore.setPendingChanges(false);
   }
@@ -637,7 +687,6 @@ class SubmissionEditForm extends React.Component<Props, SubmissionEditFormState>
     if (!this.state.loading) {
       this.removeDeletedAccountParts();
       uiStore.setPendingChanges(this.formHasChanges());
-
       this.defaultOptions = this.state.parts.default.data;
       const submission = this.state.submission!;
 
@@ -952,23 +1001,9 @@ class SubmissionEditForm extends React.Component<Props, SubmissionEditFormState>
              </Form.Item>
 
              <MultiGroup
+               defaultGroups={this.state.parts.default.data.groups}
                image={this.isFileSubmission(submission) ? RemoteService.getFileUrl(submission.primary.location) : ''}
-               acceptCallback={(groups)=>{
-                 const update = Object.values(this.state.parts).reduce((result: Array<SubmissionPart<any>>, part) => {
-                   return groups.reduce((part: SubmissionPart<any>, full) => {
-                     if (!full[part.website]) {
-                       return part;
-                     }
-
-                     part.data.tags.value = _.uniq([...part.data.tags.value, ...full[part.website]]);
-                     return part;
-                   }, part);
-
-                   result.push(part);
-                   return result;
-                 }, []);
-                 this.onUpdate(update);
-               }}
+               acceptCallback={this.handleGroupUpdate}
              />
 
               <WebsiteSections
